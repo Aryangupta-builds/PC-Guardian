@@ -10,6 +10,7 @@
 #include <thread>
 #include <chrono>
 #include <cmath>
+#include<limits>
 using namespace std;
 namespace fs = std::filesystem;
 
@@ -390,6 +391,7 @@ int main()
     }
 
     // intitialization
+    string input_extension;
     int position = 0;
     int direction = 1;
     string scanstatus;
@@ -399,10 +401,12 @@ int main()
     size_t FiletoDisplay = 0;
     long long sizeDivider;
     int SkippedEntries = 0;
-    vector<FileInfo> files;
     const int SUCCESS = 0;
     const int filesystemerror = 1;
     const int Invalidpath = 2;
+    // vector
+    vector<FileInfo> extension_sorted;
+    vector<FileInfo> files;
     // flags
     bool isFile = false;
     bool scanComplete = true;
@@ -414,6 +418,10 @@ int main()
     int maxLocationLength = 0;
     int maxNameLength = 0;
     int currentLength = 0;
+    // future mai yeh hardcoded value ko dynamic bana dege
+    int extensionWidth = 15;
+    int sizeWidth = 15;
+    int categoryWidth = 18;
 
     try
     {
@@ -723,10 +731,6 @@ int main()
                 maxLocationLength = 15;
             }
             // -------heading-------
-            // // future mai yeh hardcoded value ko dynamic bana dege
-            int extensionWidth = 15;
-            int sizeWidth = 15;
-            int categoryWidth = 18;
 
             cout << setw(maxNameLength) << left << "Name" << "  ";
             cout << setw(maxLocationLength) << "Location" << "  ";
@@ -747,5 +751,94 @@ int main()
             cout << "\nYOUR PATH :  " << "\033[32m" << path << "\033[0m" << endl;
         }
     }
+
+    // ---------------------------
+    // USER MENU
+    // ---------------------------
+
+    int user_choice = 0;
+    do
+    {
+        cout << "[1] EXTENSION FILTER\n";
+        cout << "[2] CATEGORY FILTER\n";
+        cout << "[3] SIZE FILTER\n";
+        cout << "[4] EXIT\n";
+        cout << "YOUR CHOICE : ";
+        cin >> user_choice;
+
+        switch (user_choice)
+        {
+        case 1:
+            // extension wise filtering
+            cout << "ENTER THE EXTENSION TO FILTER :";
+            cin.ignore();
+            getline(cin, input_extension);
+
+            for (const auto &file : files)
+            {
+                if (input_extension == file.getextension())
+                {
+                    extension_sorted.push_back(file);
+                }
+            }
+
+            cout << "\033[0m" << "FILE FOUNDED :" << extension_sorted.size() << "" << endl;
+
+            if (extension_sorted.empty())
+            {
+                cout << "NO FILES FOUND FOR EXTENSION " << input_extension << "\n";
+            }
+            extension_sorted.clear();
+            // THIS IS NOT GIVING PROPER OUTPUT
+            // cout << setw(maxNameLength) << left << "Name";
+            // cout << setw(extensionWidth) << "Extension";
+            // cout << setw(sizeWidth) << right << " Size";
+            // cout << setw(categoryWidth) << right << " Category";
+            // cout << endl;
+            // cout << setfill('-') << setw(maxNameLength + (extensionWidth + sizeWidth + categoryWidth)) << "-" << endl;
+            // cout << setfill(' ');
+
+            // for (auto &Storedfile : extension_sorted)
+            // {
+            //     Storedfile.display(sizeDivider, maxNameLength, 15);
+            // }
+            break;
+        case 2:
+            cout << "\033[31m";
+            cout << "UNDER DEVELOPMENT\n";
+            cout << "\033[0m";
+            break;
+        case 3:
+            cout << "\033[31m";
+            cout << "UNDER DEVELOPMENT\n";
+            cout << "\033[0m";
+            break;
+        case 4:
+            cout << "\033[32m";
+            cout << "EXITING....\n";
+            cout << "\033[0m";
+            break;
+        default:
+            // PROBLEM FOUNDED : choice mai string input ho jaaraha hai toh program paagal ho ja raha hai
+            if (cin.fail())
+            {
+                cout << "\033[31m";
+                cout << "INVALID OPTION \n";
+                cout << "\033[0m";
+                // error state reset
+                cin.clear();
+                // buffer cleaning
+                cin.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
+            }
+            else
+            {
+                cout << "\033[31m";
+                cout << "INVALID OPTION \n";
+                cout << "\033[0m";
+            }
+        }
+
+    } while (user_choice != 4);
+
     return SUCCESS;
 }
