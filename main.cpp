@@ -363,6 +363,30 @@ void StaticBar(double percentage, int Max_bar_length)
     cout << "  " << setw(5) << fixed << setprecision(2) << (percentage) << "%";
 }
 
+long long convertTobytes(double value, string unit)
+{
+    if (unit == "KB" || unit == "kb" || unit == "Kb" || unit == "kB")
+    {
+        return value * 1024;
+    }
+    else if (unit == "MB" || unit == "mb" || unit == "Mb" || unit == "mB")
+    {
+        return value * 1024 * 1024;
+    }
+    else if (unit == "GB" || unit == "gb" || unit == "Gb" || unit == "gB")
+    {
+        return value * 1024 * 1024 * 1024;
+    }
+    else if (unit == "TB" || unit == "tb" || unit == "Tb" || unit == "tB")
+    {
+        return value * 1024 * 1024 * 1024 * 1024;
+    }
+    else
+    {
+        return 1;
+    }
+}
+
 int main()
 {
     // startup
@@ -391,8 +415,6 @@ int main()
     }
 
     // intitialization
-    string input_category;
-    string input_extension;
     int position = 0;
     int direction = 1;
     string scanstatus;
@@ -400,12 +422,22 @@ int main()
     const int Max_bar_length = 40;
     int folderCounter = 0;
     size_t FiletoDisplay = 0;
-    long long sizeDivider;
+    long long sizeDivider = 1;
     int SkippedEntries = 0;
     const int SUCCESS = 0;
     const int filesystemerror = 1;
     const int Invalidpath = 2;
+    // user menu variables
+    long long byte_max = 0;
+    long long byte_min = 0;
+    double minimum_size_value = 0;
+    string minimum_size_unit;
+    double maximum_size_value = 0;
+    string maximum_size_unit;
+    string input_category;
+    string input_extension;
     // vector
+    vector<FileInfo> filteredFilesbysize;
     vector<FileInfo> filteredFilesbycategory;
     vector<FileInfo> filteredFilesbyextension;
     vector<FileInfo> files;
@@ -602,6 +634,11 @@ int main()
 
         if (isFile)
         {
+            sizeDivider = files[0].getsize() / 3;
+            if (sizeDivider == 0)
+            {
+                sizeDivider = 1;
+            }
             reportFile(files[0], category);
         }
         else
@@ -843,6 +880,7 @@ int main()
             else
             {
 
+                cout << "TOTAL FILES FOUND : " << "\033[32m" << filteredFilesbycategory.size() << "\033[0m" << endl;
                 for (size_t i = 0; i < filteredFilesbycategory.size(); i++)
                 {
                     // maximum location length
@@ -874,9 +912,81 @@ int main()
 
             break;
         case 3:
-            cout << "\033[31m";
-            cout << "UNDER DEVELOPMENT\n";
-            cout << "\033[0m";
+            cout << "MINIMUM SIZE\n";
+            cout << "Enter the value : ";
+            cin >> minimum_size_value;
+            cout << "Enter the unit  : ";
+            cin.ignore();
+            getline(cin, minimum_size_unit);
+
+            cout << "MAXIMUM SIZE\n";
+            cout << "Enter the value : ";
+            cin >> maximum_size_value;
+            cout << "Enter the unit  : ";
+            cin.ignore();
+            getline(cin, maximum_size_unit);
+
+            byte_min = convertTobytes(minimum_size_value, minimum_size_unit);
+            byte_max = convertTobytes(maximum_size_value, maximum_size_unit);
+            if (byte_min == 1)
+            {
+                cout << "\033[32m";
+                cout << "ERROR IN CONVERTING MIMIMUM VALUE IN BYTES!\n";
+                cout << "\033[0m";
+                break;
+            }
+            if (byte_max == 1)
+            {
+                cout << "\033[32m";
+                cout << "ERROR IN CONVERTING MAXIMUM VALUE IN BYTES!\n";
+                cout << "\033[0m";
+                break;
+            }
+            for (const auto &item : files)
+            {
+                if (byte_min <= item.getsize() && item.getsize() <= byte_max)
+                {
+                    filteredFilesbysize.push_back(item);
+                }
+            }
+
+            if (filteredFilesbysize.empty())
+            {
+                cout << "\033[31m" << "NO FILES FOUND FOR RANGE : " << minimum_size_value << minimum_size_unit << " To " << maximum_size_value << maximum_size_unit << "\033[0m" << "\n";
+            }
+            else
+            {
+                cout << "TOTAL FILES FOUND : " << "\033[32m" << filteredFilesbysize.size() << "\033[0m" << endl;
+
+                for (size_t i = 0; i < filteredFilesbysize.size(); i++)
+                {
+                    // maximum location length
+
+                    currentLocationLength = filteredFilesbysize[i].getrelativePath().length();
+                    if (currentLocationLength > maxLocationLength)
+                    {
+                        maxLocationLength = currentLocationLength;
+                    }
+                }
+                // table
+                cout << setw(maxNameLength) << left << "Name" << "  ";
+                cout << setw(maxLocationLength) << "Location" << "  ";
+                cout << setw(extensionWidth) << "Extension" << "  ";
+                cout << setw(sizeWidth) << right << "Size" << "  ";
+                cout << setw(categoryWidth) << right << "Category" << "  ";
+                cout << endl;
+                cout << setfill('_') << setw(maxNameLength + (extensionWidth + sizeWidth + categoryWidth + (maxLocationLength) + 8)) << "_" << endl
+                     << endl; //+8 because of gaps.
+                cout << setfill(' ');
+                // display
+                for (size_t i = 0; i < filteredFilesbysize.size(); i++)
+                {
+                    filteredFilesbysize[i].display(sizeDivider, maxNameLength, maxLocationLength);
+                }
+                cout << "\n\n";
+            }
+            filteredFilesbysize.clear();
+
             break;
         case 4:
             cout << "\033[32m";
