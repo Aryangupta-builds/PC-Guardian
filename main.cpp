@@ -10,7 +10,7 @@
 #include <thread>
 #include <chrono>
 #include <cmath>
-#include<limits>
+#include <limits>
 using namespace std;
 namespace fs = std::filesystem;
 
@@ -391,6 +391,7 @@ int main()
     }
 
     // intitialization
+    string input_category;
     string input_extension;
     int position = 0;
     int direction = 1;
@@ -405,7 +406,8 @@ int main()
     const int filesystemerror = 1;
     const int Invalidpath = 2;
     // vector
-    vector<FileInfo> extension_sorted;
+    vector<FileInfo> filteredFilesbycategory;
+    vector<FileInfo> filteredFilesbyextension;
     vector<FileInfo> files;
     // flags
     bool isFile = false;
@@ -604,7 +606,6 @@ int main()
         }
         else
         {
-
             AnalysisResult analysis = Analyzer(files, category);
 
             // sizeDivider calculation after maxSize is calculated
@@ -771,42 +772,106 @@ int main()
         case 1:
             // extension wise filtering
             cout << "ENTER THE EXTENSION TO FILTER :";
-            cin.ignore();
+            // cin.ignore();
+            cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
             getline(cin, input_extension);
 
             for (const auto &file : files)
             {
                 if (input_extension == file.getextension())
                 {
-                    extension_sorted.push_back(file);
+                    filteredFilesbyextension.push_back(file);
                 }
             }
 
-            cout << "\033[0m" << "FILE FOUNDED :" << extension_sorted.size() << "" << endl;
-
-            if (extension_sorted.empty())
+            if (filteredFilesbyextension.empty())
             {
-                cout << "NO FILES FOUND FOR EXTENSION " << input_extension << "\n";
+                cout << "\033[31m" << "NO FILES FOUND FOR EXTENSION " << input_extension << "\033[0m" << "\n";
             }
-            extension_sorted.clear();
-            // THIS IS NOT GIVING PROPER OUTPUT
-            // cout << setw(maxNameLength) << left << "Name";
-            // cout << setw(extensionWidth) << "Extension";
-            // cout << setw(sizeWidth) << right << " Size";
-            // cout << setw(categoryWidth) << right << " Category";
-            // cout << endl;
-            // cout << setfill('-') << setw(maxNameLength + (extensionWidth + sizeWidth + categoryWidth)) << "-" << endl;
-            // cout << setfill(' ');
+            else
+            {
+                cout << "\033[0m" << "FILE FOUNDED : " << "\033[32m" << filteredFilesbyextension.size() << "\033[0m" << endl;
 
-            // for (auto &Storedfile : extension_sorted)
-            // {
-            //     Storedfile.display(sizeDivider, maxNameLength, 15);
-            // }
+                for (size_t i = 0; i < filteredFilesbyextension.size(); i++)
+                {
+                    // maximum location length
+
+                    currentLocationLength = filteredFilesbyextension[i].getrelativePath().length();
+                    if (currentLocationLength > maxLocationLength)
+                    {
+                        maxLocationLength = currentLocationLength;
+                    }
+                }
+                // table
+                cout << setw(maxNameLength) << left << "Name" << "  ";
+                cout << setw(maxLocationLength) << "Location" << "  ";
+                cout << setw(extensionWidth) << "Extension" << "  ";
+                cout << setw(sizeWidth) << right << "Size" << "  ";
+                cout << setw(categoryWidth) << right << "Category" << "  ";
+                cout << endl;
+                cout << setfill('_') << setw(maxNameLength + (extensionWidth + sizeWidth + categoryWidth + (maxLocationLength) + 8)) << "_" << endl
+                     << endl; //+8 because of gaps.
+                cout << setfill(' ');
+                // display
+                for (size_t i = 0; i < filteredFilesbyextension.size(); i++)
+                {
+                    filteredFilesbyextension[i].display(sizeDivider, maxNameLength, maxLocationLength);
+                }
+                cout << "\n\n";
+
+                filteredFilesbyextension.clear();
+            }
             break;
         case 2:
-            cout << "\033[31m";
-            cout << "UNDER DEVELOPMENT\n";
-            cout << "\033[0m";
+            cout << "ENTER THE CATEGORY TO FILTER :";
+            cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            getline(cin, input_category);
+
+            for (const auto &item : files)
+            {
+                auto extension = item.getextension();
+                if (input_category == getcategory(extension, category))
+                {
+                    filteredFilesbycategory.push_back(item);
+                }
+            }
+
+            if (filteredFilesbycategory.empty())
+            {
+                cout << "\033[31m" << "NO FILES FOUND FOR CATEGORY " << input_category << "\033[0m" << "\n";
+            }
+            else
+            {
+
+                for (size_t i = 0; i < filteredFilesbycategory.size(); i++)
+                {
+                    // maximum location length
+
+                    currentLocationLength = filteredFilesbycategory[i].getrelativePath().length();
+                    if (currentLocationLength > maxLocationLength)
+                    {
+                        maxLocationLength = currentLocationLength;
+                    }
+                }
+                // table
+                cout << setw(maxNameLength) << left << "Name" << "  ";
+                cout << setw(maxLocationLength) << "Location" << "  ";
+                cout << setw(extensionWidth) << "Extension" << "  ";
+                cout << setw(sizeWidth) << right << "Size" << "  ";
+                cout << setw(categoryWidth) << right << "Category" << "  ";
+                cout << endl;
+                cout << setfill('_') << setw(maxNameLength + (extensionWidth + sizeWidth + categoryWidth + (maxLocationLength) + 8)) << "_" << endl
+                     << endl; //+8 because of gaps.
+                cout << setfill(' ');
+                // display
+                for (size_t i = 0; i < filteredFilesbycategory.size(); i++)
+                {
+                    filteredFilesbycategory[i].display(sizeDivider, maxNameLength, maxLocationLength);
+                }
+                cout << "\n\n";
+            }
+            filteredFilesbycategory.clear();
+
             break;
         case 3:
             cout << "\033[31m";
@@ -828,7 +893,7 @@ int main()
                 // error state reset
                 cin.clear();
                 // buffer cleaning
-                cin.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
+                cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
             }
             else
             {
