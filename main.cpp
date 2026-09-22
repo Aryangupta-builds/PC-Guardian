@@ -11,6 +11,7 @@
 #include <chrono>
 #include <cmath>
 #include <limits>
+#include <cctype>
 using namespace std;
 namespace fs = std::filesystem;
 
@@ -318,6 +319,16 @@ string getcategory(const string &extension, const map<string, string> &category)
     }
 }
 
+string tolowerCASE(string s)
+{
+    string temp;
+    for (size_t i = 0; i < s.length(); i++)
+    {
+        temp.push_back(tolower(s[i]));
+    }
+    return temp;
+}
+
 void DynamicBar(int position, int Max_bar_length)
 {
     // max_bar_lenght less then 0
@@ -428,6 +439,9 @@ int main()
     const int filesystemerror = 1;
     const int Invalidpath = 2;
     // user menu variables
+    bool ValidInput = false;
+    string input_lower;
+    string compareable_category;
     long long byte_max = 0;
     long long byte_min = 0;
     double minimum_size_value = 0;
@@ -829,190 +843,368 @@ int main()
             {
                 cout << "\033[0m" << "FILE FOUNDED : " << "\033[32m" << filteredFilesbyextension.size() << "\033[0m" << endl;
 
-                for (size_t i = 0; i < filteredFilesbyextension.size(); i++)
+                cout << "[1] VIEW FILES DETAILS\n";
+                cout << "[2] RETURN TO BACK MENU\n";
+                cout << "YOUR CHOICE : ";
+                int option;
+                cin >> option;
+                if (cin.fail())
                 {
-                    // maximum location length
-
-                    currentLocationLength = filteredFilesbyextension[i].getrelativePath().length();
-                    if (currentLocationLength > maxLocationLength)
+                    cout << "\033[31m";
+                    cout << "INVALID OPTION \n";
+                    cout << "\033[0m";
+                    // error state reset
+                    cin.clear();
+                    // buffer cleaning
+                    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                    filteredFilesbyextension.clear();
+                }
+                else
+                {
+                    switch (option)
                     {
-                        maxLocationLength = currentLocationLength;
+
+                    case 1:
+                    {
+
+                        for (size_t i = 0; i < filteredFilesbyextension.size(); i++)
+                        {
+                            // maximum location length
+
+                            currentLocationLength = filteredFilesbyextension[i].getrelativePath().length();
+                            if (currentLocationLength > maxLocationLength)
+                            {
+                                maxLocationLength = currentLocationLength;
+                            }
+                        }
+                        // table
+                        cout << setw(maxNameLength) << left << "Name" << "  ";
+                        cout << setw(maxLocationLength) << "Location" << "  ";
+                        cout << setw(extensionWidth) << "Extension" << "  ";
+                        cout << setw(sizeWidth) << right << "Size" << "  ";
+                        cout << setw(categoryWidth) << right << "Category" << "  ";
+                        cout << endl;
+                        cout << setfill('_') << setw(maxNameLength + (extensionWidth + sizeWidth + categoryWidth + (maxLocationLength) + 8)) << "_" << endl
+                             << endl; //+8 because of gaps.
+                        cout << setfill(' ');
+                        // display
+                        for (size_t i = 0; i < filteredFilesbyextension.size(); i++)
+                        {
+                            filteredFilesbyextension[i].display(sizeDivider, maxNameLength, maxLocationLength);
+                        }
+                        cout << "\n\n";
+
+                        filteredFilesbyextension.clear();
+                        break;
+                    }
+                    case 2:
+                        cout << "\033[32m";
+                        cout << "GOING BACK \n";
+                        filteredFilesbyextension.clear();
+                        cout << "\033[0m";
+                        break;
+
+                    default:
+                    {
+                        cout << "\033[32m";
+                        cout << "INVALID OPTION\n";
+                        filteredFilesbyextension.clear();
+                        cout << "\033[0m";
+                        break;
+                    }
                     }
                 }
-                // table
-                cout << setw(maxNameLength) << left << "Name" << "  ";
-                cout << setw(maxLocationLength) << "Location" << "  ";
-                cout << setw(extensionWidth) << "Extension" << "  ";
-                cout << setw(sizeWidth) << right << "Size" << "  ";
-                cout << setw(categoryWidth) << right << "Category" << "  ";
-                cout << endl;
-                cout << setfill('_') << setw(maxNameLength + (extensionWidth + sizeWidth + categoryWidth + (maxLocationLength) + 8)) << "_" << endl
-                     << endl; //+8 because of gaps.
-                cout << setfill(' ');
-                // display
-                for (size_t i = 0; i < filteredFilesbyextension.size(); i++)
-                {
-                    filteredFilesbyextension[i].display(sizeDivider, maxNameLength, maxLocationLength);
-                }
-                cout << "\n\n";
-
-                filteredFilesbyextension.clear();
-            }
-            break;
-        case 2:
-            cout << "ENTER THE CATEGORY TO FILTER :";
-            cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-            getline(cin, input_category);
-
-            for (const auto &item : files)
-            {
-                auto extension = item.getextension();
-                if (input_category == getcategory(extension, category))
-                {
-                    filteredFilesbycategory.push_back(item);
-                }
-            }
-
-            if (filteredFilesbycategory.empty())
-            {
-                cout << "\033[31m" << "NO FILES FOUND FOR CATEGORY " << input_category << "\033[0m" << "\n";
-            }
-            else
-            {
-
-                cout << "TOTAL FILES FOUND : " << "\033[32m" << filteredFilesbycategory.size() << "\033[0m" << endl;
-                for (size_t i = 0; i < filteredFilesbycategory.size(); i++)
-                {
-                    // maximum location length
-
-                    currentLocationLength = filteredFilesbycategory[i].getrelativePath().length();
-                    if (currentLocationLength > maxLocationLength)
-                    {
-                        maxLocationLength = currentLocationLength;
-                    }
-                }
-                // table
-                cout << setw(maxNameLength) << left << "Name" << "  ";
-                cout << setw(maxLocationLength) << "Location" << "  ";
-                cout << setw(extensionWidth) << "Extension" << "  ";
-                cout << setw(sizeWidth) << right << "Size" << "  ";
-                cout << setw(categoryWidth) << right << "Category" << "  ";
-                cout << endl;
-                cout << setfill('_') << setw(maxNameLength + (extensionWidth + sizeWidth + categoryWidth + (maxLocationLength) + 8)) << "_" << endl
-                     << endl; //+8 because of gaps.
-                cout << setfill(' ');
-                // display
-                for (size_t i = 0; i < filteredFilesbycategory.size(); i++)
-                {
-                    filteredFilesbycategory[i].display(sizeDivider, maxNameLength, maxLocationLength);
-                }
-                cout << "\n\n";
-            }
-            filteredFilesbycategory.clear();
-
-            break;
-        case 3:
-            cout << "MINIMUM SIZE\n";
-            cout << "Enter the value : ";
-            cin >> minimum_size_value;
-            cout << "Enter the unit  : ";
-            cin.ignore();
-            getline(cin, minimum_size_unit);
-
-            cout << "MAXIMUM SIZE\n";
-            cout << "Enter the value : ";
-            cin >> maximum_size_value;
-            cout << "Enter the unit  : ";
-            cin.ignore();
-            getline(cin, maximum_size_unit);
-
-            byte_min = convertTobytes(minimum_size_value, minimum_size_unit);
-            byte_max = convertTobytes(maximum_size_value, maximum_size_unit);
-            if (byte_min == 1)
-            {
-                cout << "\033[32m";
-                cout << "ERROR IN CONVERTING MIMIMUM VALUE IN BYTES!\n";
-                cout << "\033[0m";
                 break;
-            }
-            if (byte_max == 1)
-            {
-                cout << "\033[32m";
-                cout << "ERROR IN CONVERTING MAXIMUM VALUE IN BYTES!\n";
-                cout << "\033[0m";
-                break;
-            }
-            for (const auto &item : files)
-            {
-                if (byte_min <= item.getsize() && item.getsize() <= byte_max)
-                {
-                    filteredFilesbysize.push_back(item);
-                }
-            }
-
-            if (filteredFilesbysize.empty())
-            {
-                cout << "\033[31m" << "NO FILES FOUND FOR RANGE : " << minimum_size_value << minimum_size_unit << " To " << maximum_size_value << maximum_size_unit << "\033[0m" << "\n";
-            }
-            else
-            {
-                cout << "TOTAL FILES FOUND : " << "\033[32m" << filteredFilesbysize.size() << "\033[0m" << endl;
-
-                for (size_t i = 0; i < filteredFilesbysize.size(); i++)
-                {
-                    // maximum location length
-
-                    currentLocationLength = filteredFilesbysize[i].getrelativePath().length();
-                    if (currentLocationLength > maxLocationLength)
-                    {
-                        maxLocationLength = currentLocationLength;
-                    }
-                }
-                // table
-                cout << setw(maxNameLength) << left << "Name" << "  ";
-                cout << setw(maxLocationLength) << "Location" << "  ";
-                cout << setw(extensionWidth) << "Extension" << "  ";
-                cout << setw(sizeWidth) << right << "Size" << "  ";
-                cout << setw(categoryWidth) << right << "Category" << "  ";
-                cout << endl;
-                cout << setfill('_') << setw(maxNameLength + (extensionWidth + sizeWidth + categoryWidth + (maxLocationLength) + 8)) << "_" << endl
-                     << endl; //+8 because of gaps.
-                cout << setfill(' ');
-                // display
-                for (size_t i = 0; i < filteredFilesbysize.size(); i++)
-                {
-                    filteredFilesbysize[i].display(sizeDivider, maxNameLength, maxLocationLength);
-                }
-                cout << "\n\n";
-            }
-            filteredFilesbysize.clear();
-
-            break;
-        case 4:
-            cout << "\033[32m";
-            cout << "EXITING....\n";
-            cout << "\033[0m";
-            break;
-        default:
-            // PROBLEM FOUNDED : choice mai string input ho jaaraha hai toh program paagal ho ja raha hai
-            if (cin.fail())
-            {
-                cout << "\033[31m";
-                cout << "INVALID OPTION \n";
-                cout << "\033[0m";
-                // error state reset
-                cin.clear();
-                // buffer cleaning
+            case 2:
+                // cout<<""; -> sare avalibe category ka name show karna hai
+                cout << "ENTER THE CATEGORY TO FILTER :";
                 cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-            }
-            else
-            {
-                cout << "\033[31m";
-                cout << "INVALID OPTION \n";
+                getline(cin, input_category);
+
+                input_lower = tolowerCASE(input_category);
+
+                for (const auto &item : files)
+                {
+                    auto extension = item.getextension();
+
+                    compareable_category = tolowerCASE(getcategory(extension, category));
+
+                    if (input_lower == compareable_category)
+                    {
+                        filteredFilesbycategory.push_back(item);
+                    }
+                }
+
+                if (filteredFilesbycategory.empty())
+                {
+                    cout << "\033[31m" << "NO FILES FOUND FOR CATEGORY " << input_category << "\033[0m" << "\n";
+                }
+                else
+                {
+
+                    cout << "TOTAL FILES FOUND : " << "\033[32m" << filteredFilesbycategory.size() << "\033[0m" << endl;
+                    for (size_t i = 0; i < filteredFilesbycategory.size(); i++)
+                    {
+                        // maximum location length
+
+                        currentLocationLength = filteredFilesbycategory[i].getrelativePath().length();
+                        if (currentLocationLength > maxLocationLength)
+                        {
+                            maxLocationLength = currentLocationLength;
+                        }
+                    }
+                    cout << "[1] VIEW FILES DETAILS\n";
+                    cout << "[2] RETURN TO BACK MENU\n";
+                    cout << "YOUR CHOICE : ";
+                    int option;
+                    cin >> option;
+                    if (cin.fail())
+                    {
+                        cout << "\033[31m";
+                        cout << "INVALID OPTION \n";
+                        cout << "\033[0m";
+                        // error state reset
+                        cin.clear();
+                        // buffer cleaning
+                        cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                        filteredFilesbycategory.clear();
+                    }
+                    else
+                    {
+                        switch (option)
+                        {
+
+                        case 1:
+                        {
+                            // table
+                            cout << setw(maxNameLength) << left << "Name" << "  ";
+                            cout << setw(maxLocationLength) << "Location" << "  ";
+                            cout << setw(extensionWidth) << "Extension" << "  ";
+                            cout << setw(sizeWidth) << right << "Size" << "  ";
+                            cout << setw(categoryWidth) << right << "Category" << "  ";
+                            cout << endl;
+                            cout << setfill('_') << setw(maxNameLength + (extensionWidth + sizeWidth + categoryWidth + (maxLocationLength) + 8)) << "_" << endl
+                                 << endl; //+8 because of gaps.
+                            cout << setfill(' ');
+                            // display
+                            for (size_t i = 0; i < filteredFilesbycategory.size(); i++)
+                            {
+                                filteredFilesbycategory[i].display(sizeDivider, maxNameLength, maxLocationLength);
+                            }
+                            cout << "\n\n";
+
+                            input_lower.clear();
+                            filteredFilesbycategory.clear();
+                            break;
+                        }
+                        case 2:
+                        {
+                            cout << "\033[32m";
+                            cout << "GOING BACK \n";
+                            input_lower.clear();
+                            filteredFilesbycategory.clear();
+                            cout << "\033[0m";
+                            break;
+                        }
+                        default:
+                        {
+                            cout << "\033[32m";
+                            cout << "INVALID OPTION\n";
+                            input_lower.clear();
+                            filteredFilesbycategory.clear();
+                            cout << "\033[0m";
+                            break;
+                        }
+                        }
+                    }
+                }
+                break;
+            case 3:
+                cout << "MINIMUM SIZE\n";
+
+                do
+                {
+                    cout << "Enter the value : ";
+                    cin >> minimum_size_value;
+                    if (cin.fail())
+                    {
+                        cout << "\033[31m";
+                        cout << "INVALID OPTION \n";
+                        cout << "\033[0m";
+                        // error state reset
+                        cin.clear();
+                        // buffer cleaning
+                        cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                    }
+                    else
+                    {
+                        ValidInput = true;
+                    }
+                } while (!ValidInput);
+                // reset
+                ValidInput = false;
+                cout << "Enter the unit  : ";
+                cin.ignore();
+                getline(cin, minimum_size_unit);
+
+                cout << "MAXIMUM SIZE\n";
+                do
+                {
+                    cout << "Enter the value : ";
+                    cin >> maximum_size_value;
+                    if (cin.fail())
+                    {
+                        cout << "\033[31m";
+                        cout << "INVALID OPTION \n";
+                        cout << "\033[0m";
+                        // error state reset
+                        cin.clear();
+                        // buffer cleaning
+                        cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                    }
+                    else
+                    {
+                        ValidInput = true;
+                    }
+                } while (!ValidInput);
+                cout << "Enter the unit  : ";
+                cin.ignore();
+                getline(cin, maximum_size_unit);
+
+                byte_min = convertTobytes(minimum_size_value, minimum_size_unit);
+                byte_max = convertTobytes(maximum_size_value, maximum_size_unit);
+                if (byte_min == 1)
+                {
+                    cout << "\033[31m";
+                    cout << "ERROR IN CONVERTING MIMIMUM VALUE IN BYTES!\n";
+                    cout << "\033[0m";
+                    break;
+                }
+                if (byte_max == 1)
+                {
+                    cout << "\033[31m";
+                    cout << "ERROR IN CONVERTING MAXIMUM VALUE IN BYTES!\n";
+                    cout << "\033[0m";
+                    break;
+                }
+                for (const auto &item : files)
+                {
+                    if (byte_min <= item.getsize() && item.getsize() <= byte_max)
+                    {
+                        filteredFilesbysize.push_back(item);
+                    }
+                }
+
+                if (filteredFilesbysize.empty())
+                {
+                    cout << "\033[31m" << "NO FILES FOUND FOR RANGE : " << minimum_size_value << minimum_size_unit << " To " << maximum_size_value << maximum_size_unit << "\033[0m" << "\n";
+                }
+                else
+                {
+                    cout << "TOTAL FILES FOUND : " << "\033[32m" << filteredFilesbysize.size() << "\033[0m" << endl;
+
+                    for (size_t i = 0; i < filteredFilesbysize.size(); i++)
+                    {
+                        // maximum location length
+
+                        currentLocationLength = filteredFilesbysize[i].getrelativePath().length();
+                        if (currentLocationLength > maxLocationLength)
+                        {
+                            maxLocationLength = currentLocationLength;
+                        }
+                    }
+                    cout << "[1] VIEW FILES DETAILS\n";
+                    cout << "[2] RETURN TO BACK MENU\n";
+                    cout << "YOUR CHOICE : ";
+                    int option;
+                    cin >> option;
+                    if (cin.fail())
+                    {
+                        cout << "\033[31m";
+                        cout << "INVALID OPTION \n";
+                        cout << "\033[0m";
+                        // error state reset
+                        cin.clear();
+                        // buffer cleaning
+                        cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                        filteredFilesbysize.clear();
+                    }
+                    else
+                    {
+                        switch (option)
+                        {
+
+                        case 1:
+                        {
+                            // table
+                            cout << setw(maxNameLength) << left << "Name" << "  ";
+                            cout << setw(maxLocationLength) << "Location" << "  ";
+                            cout << setw(extensionWidth) << "Extension" << "  ";
+                            cout << setw(sizeWidth) << right << "Size" << "  ";
+                            cout << setw(categoryWidth) << right << "Category" << "  ";
+                            cout << endl;
+                            cout << setfill('_') << setw(maxNameLength + (extensionWidth + sizeWidth + categoryWidth + (maxLocationLength) + 8)) << "_" << endl
+                                 << endl; //+8 because of gaps.
+                            cout << setfill(' ');
+                            // display
+                            for (size_t i = 0; i < filteredFilesbysize.size(); i++)
+                            {
+                                filteredFilesbysize[i].display(sizeDivider, maxNameLength, maxLocationLength);
+                            }
+                            cout << "\n\n";
+
+                            filteredFilesbysize.clear();
+                            break;
+                        }
+                        case 2:
+                        {
+                            cout << "\033[32m";
+                            cout << "GOING BACK \n";
+                            filteredFilesbysize.clear();
+                            cout << "\033[0m";
+                            break;
+                        }
+                        default:
+                        {
+                            cout << "\033[32m";
+                            cout << "INVALID OPTION\n";
+                            filteredFilesbysize.clear();
+                            cout << "\033[0m";
+                            break;
+                        }
+                        }
+                    }
+                }
+                break;
+            case 4:
+
+                cout << "\033[32m";
+                cout << "EXITING....\n";
                 cout << "\033[0m";
+                break;
+
+            default:
+
+                // PROBLEM FOUNDED : choice mai string input ho jaaraha hai toh program paagal ho ja raha hai
+                if (cin.fail())
+                {
+                    cout << "\033[31m";
+                    cout << "INVALID OPTION \n";
+                    cout << "\033[0m";
+                    // error state reset
+                    cin.clear();
+                    // buffer cleaning
+                    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                }
+                else
+                {
+                    cout << "\033[31m";
+                    cout << "INVALID OPTION \n";
+                    cout << "\033[0m";
+                }
+                break;
             }
         }
-
     } while (user_choice != 4);
 
     return SUCCESS;
