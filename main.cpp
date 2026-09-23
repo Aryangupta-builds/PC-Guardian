@@ -40,6 +40,10 @@ AnalysisResult Analyzer(
     const vector<FileInfo> &files,
     const map<string, string> &category);
 
+void DisplayFileTable(const vector<FileInfo> &files,
+                      long long sizeDivider,
+                      size_t howManyFiles);
+
 class FileInfo
 {
     string filename;
@@ -74,7 +78,7 @@ public:
 
         cout << setw(nameWidth) << left << filename << "  ";
         cout << setw(relativePathwidth) << relativePath << "  ";
-        cout << setw(15) << extension << "  ";
+        cout << setw(18) << extension << "  ";
         cout << setw(15) << right << formatdata << "  ";
         cout << setw(15) << right << getsizecategory(sizedivider, *this);
         cout << endl;
@@ -398,6 +402,61 @@ long long convertTobytes(double value, string unit)
     }
 }
 
+void DisplayFileTable(const vector<FileInfo> &files, long long sizeDivider, size_t howManyFiles)
+{
+    // future mai yeh hardcoded value ko dynamic bana dege
+    int extensionWidth = 15;
+    int sizeWidth = 15;
+    int categoryWidth = 18;
+
+    // value reset
+    int maxNameLength = 0;
+    int maxLocationLength = 0;
+    int currentLength = 0;
+    int currentLocationLength = 0;
+
+    for (size_t i = 0; i < howManyFiles; i++)
+    {
+        // maximum location length
+        currentLocationLength = files[i].getrelativePath().length();
+        if (currentLocationLength > maxLocationLength)
+        {
+            maxLocationLength = currentLocationLength;
+        }
+        // maximum file name length
+        currentLength = files[i].getfilename().length();
+        if (currentLength > maxNameLength)
+        {
+            maxNameLength = currentLength;
+        }
+    }
+    // minimum width
+    if (maxNameLength < 25)
+    {
+        maxNameLength = 25;
+    }
+    if (maxLocationLength < 15)
+    {
+        maxLocationLength = 15;
+    }
+    // table
+    cout << setw(maxNameLength) << left << "Name" << "  ";
+    cout << setw(maxLocationLength) << "Location" << "  ";
+    cout << setw(extensionWidth) << "Extension" << "  ";
+    cout << setw(sizeWidth) << right << "Size" << "  ";
+    cout << setw(categoryWidth) << right << "Category" << "  ";
+    cout << endl;
+    cout << setfill('_') << setw(maxNameLength + (extensionWidth + sizeWidth + categoryWidth + (maxLocationLength) + 8)) << "_" << endl
+         << endl; //+8 because of gaps.
+    cout << setfill(' ');
+    // display
+    for (size_t i = 0; i <howManyFiles; i++)
+    {
+        files[i].display(sizeDivider, maxNameLength, maxLocationLength);
+    }
+    cout << "\n\n";
+}
+
 int main()
 {
     // startup
@@ -465,17 +524,6 @@ int main()
 
     // // maps-------------
     map<string, string> category = createCategoryMap();
-
-    // table width
-    int currentLocationLength = 0;
-    int maxLocationLength = 0;
-    int maxNameLength = 0;
-    int currentLength = 0;
-
-    // future mai yeh hardcoded value ko dynamic bana dege
-    int extensionWidth = 15;
-    int sizeWidth = 15;
-    int categoryWidth = 18;
 
     try
     {
@@ -759,52 +807,7 @@ int main()
                  { return a.getsize() > b.getsize(); });
             //  [] -> yeh hai lambda function new chiz sikhe hai...
 
-            // ---------------------------------------------printing-----------------------------------------------------
-
-            // setw width calulation
-            for (size_t i = 0; i < FiletoDisplay; i++)
-            {
-                // maximum location length
-
-                currentLocationLength = copy_fileSorter[i].getrelativePath().length();
-                if (currentLocationLength > maxLocationLength)
-                {
-                    maxLocationLength = currentLocationLength;
-                }
-
-                // maximum filename  length
-                currentLength = copy_fileSorter[i].getfilename().length();
-                if (currentLength > maxNameLength)
-                {
-                    maxNameLength = currentLength;
-                }
-            }
-            // minimum width
-            if (maxNameLength < 25)
-            {
-                maxNameLength = 25;
-            }
-            if (maxLocationLength < 15)
-            {
-                maxLocationLength = 15;
-            }
-            // -------heading-------
-
-            cout << setw(maxNameLength) << left << "Name" << "  ";
-            cout << setw(maxLocationLength) << "Location" << "  ";
-            cout << setw(extensionWidth) << "Extension" << "  ";
-            cout << setw(sizeWidth) << right << "Size" << "  ";
-            cout << setw(categoryWidth) << right << "Category" << "  ";
-            cout << endl;
-            cout << setfill('_') << setw(maxNameLength + (extensionWidth + sizeWidth + categoryWidth + (maxLocationLength) + 8)) << "_" << endl
-                 << endl; //+8 because of gaps.
-            cout << setfill(' ');
-
-            for (size_t i = 0; i < FiletoDisplay; i++)
-            {
-                copy_fileSorter[i].display(sizeDivider, maxNameLength, maxLocationLength);
-            }
-            cout << "\n\n";
+            DisplayFileTable(copy_fileSorter, sizeDivider, FiletoDisplay);
 
             cout << "\nYOUR PATH :  " << "\033[32m" << path << "\033[0m" << endl
                  << endl;
@@ -914,54 +917,7 @@ int main()
 
                             case 1:
                             {
-                                // reseting printing variables
-                                maxNameLength = 0;
-                                maxLocationLength = 0;
-                                currentLength = 0;
-                                currentLocationLength = 0;
-
-                                for (size_t i = 0; i < filteredFilesbyextension.size(); i++)
-                                {
-                                    // maximum location length
-
-                                    currentLocationLength = filteredFilesbyextension[i].getrelativePath().length();
-                                    if (currentLocationLength > maxLocationLength)
-                                    {
-                                        maxLocationLength = currentLocationLength;
-                                    }
-                                    // maximum file name lenght
-                                    currentLength = filteredFilesbyextension[i].getfilename().length();
-                                    if (currentLength > maxNameLength)
-                                    {
-                                        maxNameLength = currentLength;
-                                    }
-                                }
-                                // minimum width
-                                if (maxNameLength < 25)
-                                {
-                                    maxNameLength = 25;
-                                }
-                                if (maxLocationLength < 15)
-                                {
-                                    maxLocationLength = 15;
-                                }
-                                // table
-                                cout << setw(maxNameLength) << left << "Name" << "  ";
-                                cout << setw(maxLocationLength) << "Location" << "  ";
-                                cout << setw(extensionWidth) << "Extension" << "  ";
-                                cout << setw(sizeWidth) << right << "Size" << "  ";
-                                cout << setw(categoryWidth) << right << "Category" << "  ";
-                                cout << endl;
-                                cout << setfill('_') << setw(maxNameLength + (extensionWidth + sizeWidth + categoryWidth + (maxLocationLength) + 8)) << "_" << endl
-                                     << endl; //+8 because of gaps.
-                                cout << setfill(' ');
-                                // display
-                                for (size_t i = 0; i < filteredFilesbyextension.size(); i++)
-                                {
-                                    filteredFilesbyextension[i].display(sizeDivider, maxNameLength, maxLocationLength);
-                                }
-                                cout << "\n\n";
-
+                                DisplayFileTable(filteredFilesbyextension, sizeDivider, filteredFilesbyextension.size());
                                 filteredFilesbyextension.clear();
                                 break;
                             }
@@ -1035,53 +991,8 @@ int main()
 
                                 case 1:
                                 {
-                                    // reseting printing variables
-                                    maxNameLength = 0;
-                                    maxLocationLength = 0;
-                                    currentLength = 0;
-                                    currentLocationLength = 0;
 
-                                    for (size_t i = 0; i < filteredFilesbycategory.size(); i++)
-                                    {
-                                        // maximum location length
-                                        currentLocationLength = filteredFilesbycategory[i].getrelativePath().length();
-                                        if (currentLocationLength > maxLocationLength)
-                                        {
-                                            maxLocationLength = currentLocationLength;
-                                        }
-                                        // maximum file name lenght
-                                        currentLength = filteredFilesbycategory[i].getfilename().length();
-                                        if (currentLength > maxNameLength)
-                                        {
-                                            maxNameLength = currentLength;
-                                        }
-                                    }
-                                    // minimum width
-                                    if (maxNameLength < 25)
-                                    {
-                                        maxNameLength = 25;
-                                    }
-                                    if (maxLocationLength < 15)
-                                    {
-                                        maxLocationLength = 15;
-                                    }
-                                    // table
-                                    cout << setw(maxNameLength) << left << "Name" << "  ";
-                                    cout << setw(maxLocationLength) << "Location" << "  ";
-                                    cout << setw(extensionWidth) << "Extension" << "  ";
-                                    cout << setw(sizeWidth) << right << "Size" << "  ";
-                                    cout << setw(categoryWidth) << right << "Category" << "  ";
-                                    cout << endl;
-                                    cout << setfill('_') << setw(maxNameLength + (extensionWidth + sizeWidth + categoryWidth + (maxLocationLength) + 8)) << "_" << endl
-                                         << endl; //+8 because of gaps.
-                                    cout << setfill(' ');
-                                    // display
-                                    for (size_t i = 0; i < filteredFilesbycategory.size(); i++)
-                                    {
-                                        filteredFilesbycategory[i].display(sizeDivider, maxNameLength, maxLocationLength);
-                                    }
-                                    cout << "\n\n";
-
+                                    DisplayFileTable(filteredFilesbycategory, sizeDivider, filteredFilesbycategory.size());
                                     input_lower.clear();
                                     filteredFilesbycategory.clear();
                                     break;
@@ -1251,53 +1162,7 @@ int main()
 
                                 case 1:
                                 {
-                                    // reseting printing variables
-                                    maxNameLength = 0;
-                                    maxLocationLength = 0;
-                                    currentLength = 0;
-                                    currentLocationLength = 0;
-
-                                    for (size_t i = 0; i < filteredFilesbysize.size(); i++)
-                                    {
-                                        // maximum location length
-                                        currentLocationLength = filteredFilesbysize[i].getrelativePath().length();
-                                        if (currentLocationLength > maxLocationLength)
-                                        {
-                                            maxLocationLength = currentLocationLength;
-                                        }
-                                        // maximum file name length
-                                        currentLength = filteredFilesbysize[i].getfilename().length();
-                                        if (currentLength > maxNameLength)
-                                        {
-                                            maxNameLength = currentLength;
-                                        }
-                                    }
-                                    // minimum width
-                                    if (maxNameLength < 25)
-                                    {
-                                        maxNameLength = 25;
-                                    }
-                                    if (maxLocationLength < 15)
-                                    {
-                                        maxLocationLength = 15;
-                                    }
-                                    // table
-                                    cout << setw(maxNameLength) << left << "Name" << "  ";
-                                    cout << setw(maxLocationLength) << "Location" << "  ";
-                                    cout << setw(extensionWidth) << "Extension" << "  ";
-                                    cout << setw(sizeWidth) << right << "Size" << "  ";
-                                    cout << setw(categoryWidth) << right << "Category" << "  ";
-                                    cout << endl;
-                                    cout << setfill('_') << setw(maxNameLength + (extensionWidth + sizeWidth + categoryWidth + (maxLocationLength) + 8)) << "_" << endl
-                                         << endl; //+8 because of gaps.
-                                    cout << setfill(' ');
-                                    // display
-                                    for (size_t i = 0; i < filteredFilesbysize.size(); i++)
-                                    {
-                                        filteredFilesbysize[i].display(sizeDivider, maxNameLength, maxLocationLength);
-                                    }
-                                    cout << "\n\n";
-
+                                    DisplayFileTable(filteredFilesbysize, sizeDivider, filteredFilesbysize.size());
                                     filteredFilesbysize.clear();
                                     break;
                                 }
