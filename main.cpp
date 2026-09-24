@@ -450,11 +450,23 @@ void DisplayFileTable(const vector<FileInfo> &files, long long sizeDivider, size
          << endl; //+8 because of gaps.
     cout << setfill(' ');
     // display
-    for (size_t i = 0; i <howManyFiles; i++)
+    for (size_t i = 0; i < howManyFiles; i++)
     {
         files[i].display(sizeDivider, maxNameLength, maxLocationLength);
     }
     cout << "\n\n";
+}
+
+string trim(const string &s){
+    size_t start = 0;
+    size_t end = s.length();
+    while(start<end&&isspace(s[start])){
+        start++;
+    }
+    while(end>start&&isspace(s[end-1])){
+        end--;
+    }
+    return s.substr(start,end-start);
 }
 
 int main()
@@ -513,6 +525,7 @@ int main()
     string input_extension;
 
     // vector
+    vector<FileInfo> fileSearched;
     vector<FileInfo> filteredFilesbysize;
     vector<FileInfo> filteredFilesbycategory;
     vector<FileInfo> filteredFilesbyextension;
@@ -1218,9 +1231,94 @@ int main()
         }
         case 2:
         {
-            cout << "\033[31m";
-            cout << "UNDER DEVELOPMENT \n";
-            cout << "\033[0m";
+
+            // ###############################
+            // FILE SEARCH MENU
+            // ###############################
+            cout << "--------------------------------\n";
+            cout << "          " << "\033[33m" << "FILE SEARCH\n"
+                 << "\033[0m";
+            cout << "--------------------------------\n";
+
+            string FileNameSearch;
+            cout << "ENTER THE NAME OF FILE :";
+            cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            getline(cin, FileNameSearch);
+            FileNameSearch = trim(FileNameSearch);
+            if (FileNameSearch.empty())
+            {
+                cout << "\033[31m";
+                cout << "YOU HAVE NOT ENTERED THE FILENAME\n";
+                cout << "\033[0m";
+                break;
+            }
+            
+            string FullFileName;
+            FileNameSearch = tolowerCASE(FileNameSearch);
+            for (const auto &item : files)
+            {
+                FullFileName = tolowerCASE(item.getfilename()+item.getextension());
+                
+                if (FullFileName.find(FileNameSearch) != string::npos)
+                {
+                    fileSearched.push_back(item);
+                }
+            }
+
+            if (fileSearched.empty())
+            {
+                cout << "\033[31m" << "NO FILES FOUND FOR NAME : " << FileNameSearch << "\033[0m" << "\n";
+            }
+            else
+            {
+                cout << "TOTAL FILES FOUND : " << "\033[32m" << fileSearched.size() << "\033[0m" << endl;
+
+                cout << "[1] VIEW FILES DETAILS\n";
+                cout << "[2] RETURN TO BACK MENU\n";
+                cout << "YOUR CHOICE : ";
+                int option;
+                cin >> option;
+                if (cin.fail())
+                {
+                    cout << "\033[31m";
+                    cout << "INVALID OPTION \n";
+                    cout << "\033[0m";
+                    // error state reset
+                    cin.clear();
+                    // buffer cleaning
+                    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                    fileSearched.clear();
+                }
+                else
+                {
+                    switch (option)
+                    {
+
+                    case 1:
+                    {
+                        DisplayFileTable(fileSearched, sizeDivider, fileSearched.size());
+                        fileSearched.clear();
+                        break;
+                    }
+                    case 2:
+                    {
+                        cout << "\033[32m";
+                        cout << "GOING BACK \n";
+                        fileSearched.clear();
+                        cout << "\033[0m";
+                        break;
+                    }
+                    default:
+                    {
+                        cout << "\033[32m";
+                        cout << "INVALID OPTION\n";
+                        fileSearched.clear();
+                        cout << "\033[0m";
+                        break;
+                    }
+                    }
+                }
+            }
             break;
         }
         case 3:
