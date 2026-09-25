@@ -457,16 +457,19 @@ void DisplayFileTable(const vector<FileInfo> &files, long long sizeDivider, size
     cout << "\n\n";
 }
 
-string trim(const string &s){
+string trim(const string &s)
+{
     size_t start = 0;
     size_t end = s.length();
-    while(start<end&&isspace(s[start])){
+    while (start < end && isspace(s[start]))
+    {
         start++;
     }
-    while(end>start&&isspace(s[end-1])){
+    while (end > start && isspace(s[end - 1]))
+    {
         end--;
     }
-    return s.substr(start,end-start);
+    return s.substr(start, end - start);
 }
 
 int main()
@@ -910,7 +913,7 @@ int main()
                         cout << "[1] VIEW FILES DETAILS\n";
                         cout << "[2] RETURN TO BACK MENU\n";
                         cout << "YOUR CHOICE : ";
-                        int option;
+                        int option = 0;
                         cin >> option;
                         if (cin.fail())
                         {
@@ -984,7 +987,7 @@ int main()
                             cout << "[1] VIEW FILES DETAILS\n";
                             cout << "[2] RETURN TO BACK MENU\n";
                             cout << "YOUR CHOICE : ";
-                            int option;
+                            int option = 0;
                             cin >> option;
                             if (cin.fail())
                             {
@@ -1155,7 +1158,7 @@ int main()
                             cout << "[1] VIEW FILES DETAILS\n";
                             cout << "[2] RETURN TO BACK MENU\n";
                             cout << "YOUR CHOICE : ";
-                            int option;
+                            int option = 0;
                             cin >> option;
                             if (cin.fail())
                             {
@@ -1252,13 +1255,13 @@ int main()
                 cout << "\033[0m";
                 break;
             }
-            
+
             string FullFileName;
             FileNameSearch = tolowerCASE(FileNameSearch);
             for (const auto &item : files)
             {
-                FullFileName = tolowerCASE(item.getfilename()+item.getextension());
-                
+                FullFileName = tolowerCASE(item.getfilename() + item.getextension());
+
                 if (FullFileName.find(FileNameSearch) != string::npos)
                 {
                     fileSearched.push_back(item);
@@ -1276,7 +1279,7 @@ int main()
                 cout << "[1] VIEW FILES DETAILS\n";
                 cout << "[2] RETURN TO BACK MENU\n";
                 cout << "YOUR CHOICE : ";
-                int option;
+                int option = 0;
                 cin >> option;
                 if (cin.fail())
                 {
@@ -1323,9 +1326,426 @@ int main()
         }
         case 3:
         {
-            cout << "\033[31m";
-            cout << "UNDER DEVELOPMENT \n";
-            cout << "\033[0m";
+            // ###############################
+            // FILE SORT MENU
+            // ###############################
+            cout << "--------------------------------\n";
+            cout << "          " << "\033[33m" << "FILE SORT\n"
+                 << "\033[0m";
+            cout << "--------------------------------\n";
+
+            int user_choice_fileSort_menu = 0;
+            do
+            {
+                cout << "[1] SORT BY SIZE\n";
+                cout << "[2] SORT BY NAME\n";
+                cout << "[3] SORT BY EXTENSION\n";
+                cout << "[4] SORT BY DATE\n";
+                cout << "[5] BACK\n";
+                cout << "YOUR CHOICE : ";
+                cin >> user_choice_fileSort_menu;
+                if (cin.fail())
+                {
+                    cout << "\033[31m";
+                    cout << "INVALID OPTION \n";
+                    cout << "\033[0m";
+                    // error state reset
+                    cin.clear();
+                    // buffer cleaning
+                    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                    continue;
+                }
+
+                switch (user_choice_fileSort_menu)
+                {
+                case 1:
+                {
+                    int option = 0;
+                    do
+                    {
+                        cout << endl;
+                        cout << "SORT BY SIZE\n";
+                        cout << endl;
+                        cout << "[1] LARGEST -> SMALLEST\n";
+                        cout << "[2] SMALLEST -> LARGEST\n";
+                        cout << "[3] BACK\n";
+                        cout << "YOUR CHOICE : \n";
+                        cin >> option;
+                        if (cin.fail())
+                        {
+                            cout << "\033[31m";
+                            cout << "INVALID OPTION \n";
+                            cout << "\033[0m";
+                            // error state reset
+                            cin.clear();
+                            // buffer cleaning
+                            cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                            continue;
+                        }
+
+                        vector<FileInfo> copy_fileSorter;
+
+                        switch (option)
+                        {
+                        case 1:
+                        {
+                            // -----------------------------------------------------------
+                            // largest to smallest
+                            // -----------------------------------------------------------
+                            // creating a copy vector--> so that the orignal scan order remains same
+                            copy_fileSorter = files;
+
+                            sort(copy_fileSorter.begin(), copy_fileSorter.end(),
+                                 [](const FileInfo &a, const FileInfo &b)
+                                 { return a.getsize() > b.getsize(); });
+                            //  [] -> yeh hai lambda function new chiz sikhe hai...
+
+                            if (copy_fileSorter.empty())
+                            {
+                                cout << "\033[31m" << "NO FILES SORTED!! " << "\033[0m" << "\n";
+                            }
+                            else
+                            {
+                                cout << "TOTAL FILES SORTED : " << "\033[32m" << copy_fileSorter.size() << "\033[0m" << endl;
+
+                                cout << "[1] VIEW FILES DETAILS\n";
+                                cout << "[2] RETURN TO BACK MENU\n";
+                                cout << "YOUR CHOICE : ";
+                                int option = 0;
+                                cin >> option;
+                                if (cin.fail())
+                                {
+                                    cout << "\033[31m";
+                                    cout << "INVALID OPTION \n";
+                                    cout << "\033[0m";
+                                    // error state reset
+                                    cin.clear();
+                                    // buffer cleaning
+                                    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                                }
+                                else
+                                {
+                                    switch (option)
+                                    {
+
+                                    case 1:
+                                    {
+                                        DisplayFileTable(copy_fileSorter, sizeDivider, copy_fileSorter.size());
+                                        copy_fileSorter.clear();
+                                        break;
+                                    }
+                                    case 2:
+                                    {
+                                        cout << "\033[32m";
+                                        cout << "GOING BACK \n";
+                                        copy_fileSorter.clear();
+                                        cout << "\033[0m";
+                                        break;
+                                    }
+                                    default:
+                                    {
+                                        cout << "\033[32m";
+                                        cout << "INVALID OPTION\n";
+                                        copy_fileSorter.clear();
+                                        cout << "\033[0m";
+                                        break;
+                                    }
+                                    }
+                                }
+                                break;
+                            }
+                        case 2:
+                        {
+                            // -----------------------------------------------------------
+                            // smallest to largest
+                            // -----------------------------------------------------------
+                            // creating a copy vector--> so that the orignal scan order remains same
+                            vector<FileInfo> copy_fileSorter;
+                            copy_fileSorter = files;
+
+                            sort(copy_fileSorter.begin(), copy_fileSorter.end(),
+                                 [](const FileInfo &a, const FileInfo &b)
+                                 { return a.getsize() < b.getsize(); });
+                            //  [] -> yeh hai lambda function new chiz sikhe hai...
+
+                            if (copy_fileSorter.empty())
+                            {
+                                cout << "\033[31m" << "NO FILES SORTED!! " << "\033[0m" << "\n";
+                            }
+                            else
+                            {
+                                cout << "TOTAL FILES SORTED : " << "\033[32m" << copy_fileSorter.size() << "\033[0m" << endl;
+
+                                cout << "[1] VIEW FILES DETAILS\n";
+                                cout << "[2] RETURN TO BACK MENU\n";
+                                cout << "YOUR CHOICE : ";
+                                int option =0;
+                                cin >> option;
+                                if (cin.fail())
+                                {
+                                    cout << "\033[31m";
+                                    cout << "INVALID OPTION \n";
+                                    cout << "\033[0m";
+                                    // error state reset
+                                    cin.clear();
+                                    // buffer cleaning
+                                    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                                }
+                                else
+                                {
+                                    switch (option)
+                                    {
+
+                                    case 1:
+                                    {
+                                        DisplayFileTable(copy_fileSorter, sizeDivider, copy_fileSorter.size());
+                                        copy_fileSorter.clear();
+                                        break;
+                                    }
+                                    case 2:
+                                    {
+                                        cout << "\033[32m";
+                                        cout << "GOING BACK \n";
+                                        copy_fileSorter.clear();
+                                        cout << "\033[0m";
+                                        break;
+                                    }
+                                    default:
+                                    {
+                                        cout << "\033[32m";
+                                        cout << "INVALID OPTION\n";
+                                        copy_fileSorter.clear();
+                                        cout << "\033[0m";
+                                        break;
+                                    }
+                                    }
+                                }
+                            }
+                            break;
+                        }
+                        case 3:
+                        {
+                            cout << "\033[32m";
+                            cout << "GOING BACK....\n";
+                            cout << "\033[0m";
+                            break;
+                        }
+                        default:
+                        {
+
+                            cout << "\033[31m";
+                            cout << "INVALID OPTION \n";
+                            cout << "\033[0m";
+                        }
+                        }
+                        }
+                    } while (option != 3);
+
+                    break;
+                }
+                case 2:
+                {
+                    int option;
+                    do
+                    {
+                        cout << endl;
+                        cout << "SORT BY NAME\n";
+                        cout << endl;
+                        cout << "[1] A -> Z\n";
+                        cout << "[2] Z -> A\n";
+                        cout << "[3] BACK\n";
+                        cout << "YOUR CHOICE : \n";
+                        cin >> option;
+                        if (cin.fail())
+                        {
+                            cout << "\033[31m";
+                            cout << "INVALID OPTION \n";
+                            cout << "\033[0m";
+                            // error state reset
+                            cin.clear();
+                            // buffer cleaning
+                            cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                            continue;
+                        }
+                        switch (option)
+                        {
+                        case 1:
+                        {
+                            cout << "\033[31m";
+                            cout << "UNDER DEVELOPMENT \n";
+                            cout << "\033[0m";
+                            break;
+                        }
+                        case 2:
+                        {
+                            cout << "\033[31m";
+                            cout << "UNDER DEVELOPMENT \n";
+                            cout << "\033[0m";
+                            break;
+                        }
+                        case 3:
+                        {
+                            cout << "\033[32m";
+                            cout << "GOING BACK....\n";
+                            cout << "\033[0m";
+                            break;
+                        }
+                        default:
+                        {
+
+                            cout << "\033[31m";
+                            cout << "INVALID OPTION \n";
+                            cout << "\033[0m";
+                        }
+                        }
+                    } while (option != 3);
+                    break;
+                }
+                case 3:
+                {
+                    int option;
+                    do
+                    {
+                        cout << endl;
+                        cout << "SORT BY EXTENSION\n";
+                        cout << endl;
+                        cout << "[1] A -> Z\n";
+                        cout << "[2] Z -> A\n";
+                        cout << "[3] BACK\n";
+                        cout << "YOUR CHOICE : \n";
+                        cin >> option;
+                        if (cin.fail())
+                        {
+                            cout << "\033[31m";
+                            cout << "INVALID OPTION \n";
+                            cout << "\033[0m";
+                            // error state reset
+                            cin.clear();
+                            // buffer cleaning
+                            cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                            continue;
+                        }
+                        switch (option)
+                        {
+                        case 1:
+                        {
+                            cout << "\033[31m";
+                            cout << "UNDER DEVELOPMENT \n";
+                            cout << "\033[0m";
+                            break;
+                        }
+                        case 2:
+                        {
+                            cout << "\033[31m";
+                            cout << "UNDER DEVELOPMENT \n";
+                            cout << "\033[0m";
+                            break;
+                        }
+                        case 3:
+                        {
+                            cout << "\033[32m";
+                            cout << "GOING BACK....\n";
+                            cout << "\033[0m";
+                            break;
+                        }
+                        default:
+                        {
+
+                            cout << "\033[31m";
+                            cout << "INVALID OPTION \n";
+                            cout << "\033[0m";
+                        }
+                        }
+                    } while (option != 3);
+                    break;
+                }
+                case 4:
+                {
+                    int option;
+                    do
+                    {
+                        cout << endl;
+                        cout << "SORT BY DATE\n";
+                        cout << endl;
+                        cout << "[1] NEWEST -> OLDEST\n";
+                        cout << "[2] OLDEST -> NEWEST\n";
+                        cout << "[3] BACK\n";
+                        cout << "YOUR CHOICE : \n";
+                        cin >> option;
+                        if (cin.fail())
+                        {
+                            cout << "\033[31m";
+                            cout << "INVALID OPTION \n";
+                            cout << "\033[0m";
+                            // error state reset
+                            cin.clear();
+                            // buffer cleaning
+                            cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                            continue;
+                        }
+                        switch (option)
+                        {
+                        case 1:
+                        {
+                            cout << "\033[31m";
+                            cout << "UNDER DEVELOPMENT \n";
+                            cout << "\033[0m";
+                            break;
+                        }
+                        case 2:
+                        {
+                            cout << "\033[31m";
+                            cout << "UNDER DEVELOPMENT \n";
+                            cout << "\033[0m";
+                            break;
+                        }
+                        case 3:
+                        {
+                            cout << "\033[32m";
+                            cout << "GOING BACK....\n";
+                            cout << "\033[0m";
+                            break;
+                        }
+                        default:
+                        {
+
+                            cout << "\033[31m";
+                            cout << "INVALID OPTION \n";
+                            cout << "\033[0m";
+                        }
+                        }
+                    } while (option != 3);
+                    break;
+                }
+                case 5:
+                {
+                    cout << "\033[32m";
+                    cout << "GOING BACK...\n";
+                    cout << "\033[0m";
+                    break;
+                }
+                default:
+                {
+                    if (cin.fail())
+                    {
+                        cout << "\033[31m";
+                        cout << "INVALID OPTION \n";
+                        cout << "\033[0m";
+                        // error state reset
+                        cin.clear();
+                        // buffer cleaning
+                        cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                    }
+                    else
+                    {
+                        cout << "\033[31m";
+                        cout << "INVALID OPTION \n";
+                        cout << "\033[0m";
+                    }
+                }
+                }
+            } while (user_choice_fileSort_menu != 5);
+
             break;
         }
         case 4:
