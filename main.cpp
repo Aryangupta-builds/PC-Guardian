@@ -1743,20 +1743,138 @@ int main()
                             cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
                             continue;
                         }
+
+                        vector<FileInfo> copy_fileSorter;
                         switch (option)
                         {
                         case 1:
                         {
-                            cout << "\033[31m";
-                            cout << "UNDER DEVELOPMENT \n";
-                            cout << "\033[0m";
+                            // ------------A->Z sorting-------------
+                            // creating a copy vector--> so that the orignal scan order remains same
+                            copy_fileSorter = files;
+
+                            sort(copy_fileSorter.begin(), copy_fileSorter.end(),
+                                 [](const FileInfo &a, const FileInfo &b)
+                                 { return tolowerCASE(a.getextension()) < tolowerCASE(b.getextension()); });
+                            //  [] -> yeh hai lambda function new chiz sikhe hai...
+                            if (copy_fileSorter.empty())
+                            {
+                                cout << "\033[31m" << "NO FILES SORTED!! " << "\033[0m" << "\n";
+                            }
+                            else
+                            {
+                                cout << "TOTAL FILES SORTED : " << "\033[32m" << copy_fileSorter.size() << "\033[0m" << endl;
+
+                                cout << "[1] VIEW FILES DETAILS\n";
+                                cout << "[2] RETURN TO BACK MENU\n";
+                                cout << "YOUR CHOICE : ";
+                                option = 0;
+                                cin >> option;
+                                if (cin.fail())
+                                {
+                                    cout << "\033[31m";
+                                    cout << "INVALID OPTION \n";
+                                    cout << "\033[0m";
+                                    // error state reset
+                                    cin.clear();
+                                    // buffer cleaning
+                                    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                                }
+                                else
+                                {
+                                    switch (option)
+                                    {
+
+                                    case 1:
+                                    {
+                                        DisplayFileTable(copy_fileSorter, sizeDivider, copy_fileSorter.size());
+                                        copy_fileSorter.clear();
+                                        break;
+                                    }
+                                    case 2:
+                                    {
+                                        cout << "\033[32m";
+                                        cout << "GOING BACK \n";
+                                        copy_fileSorter.clear();
+                                        cout << "\033[0m";
+                                        break;
+                                    }
+                                    default:
+                                    {
+                                        cout << "\033[32m";
+                                        cout << "INVALID OPTION\n";
+                                        copy_fileSorter.clear();
+                                        cout << "\033[0m";
+                                        break;
+                                    }
+                                    }
+                                }
+                            }
                             break;
                         }
                         case 2:
                         {
-                            cout << "\033[31m";
-                            cout << "UNDER DEVELOPMENT \n";
-                            cout << "\033[0m";
+                            // ------------A->Z sorting-------------
+                            // creating a copy vector--> so that the orignal scan order remains same
+                            copy_fileSorter = files;
+
+                            sort(copy_fileSorter.begin(), copy_fileSorter.end(),
+                                 [](const FileInfo &a, const FileInfo &b)
+                                 { return tolowerCASE(a.getextension()) > tolowerCASE(b.getextension()); });
+                            //  [] -> yeh hai lambda function new chiz sikhe hai...
+                            if (copy_fileSorter.empty())
+                            {
+                                cout << "\033[31m" << "NO FILES SORTED!! " << "\033[0m" << "\n";
+                            }
+                            else
+                            {
+                                cout << "TOTAL FILES SORTED : " << "\033[32m" << copy_fileSorter.size() << "\033[0m" << endl;
+
+                                cout << "[1] VIEW FILES DETAILS\n";
+                                cout << "[2] RETURN TO BACK MENU\n";
+                                cout << "YOUR CHOICE : ";
+                                option = 0;
+                                cin >> option;
+                                if (cin.fail())
+                                {
+                                    cout << "\033[31m";
+                                    cout << "INVALID OPTION \n";
+                                    cout << "\033[0m";
+                                    // error state reset
+                                    cin.clear();
+                                    // buffer cleaning
+                                    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                                }
+                                else
+                                {
+                                    switch (option)
+                                    {
+
+                                    case 1:
+                                    {
+                                        DisplayFileTable(copy_fileSorter, sizeDivider, copy_fileSorter.size());
+                                        copy_fileSorter.clear();
+                                        break;
+                                    }
+                                    case 2:
+                                    {
+                                        cout << "\033[32m";
+                                        cout << "GOING BACK \n";
+                                        copy_fileSorter.clear();
+                                        cout << "\033[0m";
+                                        break;
+                                    }
+                                    default:
+                                    {
+                                        cout << "\033[32m";
+                                        cout << "INVALID OPTION\n";
+                                        copy_fileSorter.clear();
+                                        cout << "\033[0m";
+                                        break;
+                                    }
+                                    }
+                                }
+                            }
                             break;
                         }
                         case 3:
