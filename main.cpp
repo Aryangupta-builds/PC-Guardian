@@ -12,6 +12,8 @@
 #include <cmath>
 #include <limits>
 #include <cctype>
+#include <sstream>
+#include <ctime>
 using namespace std;
 namespace fs = std::filesystem;
 
@@ -42,7 +44,9 @@ AnalysisResult Analyzer(
 
 void DisplayFileTable(const vector<FileInfo> &files,
                       long long sizeDivider,
-                      size_t howManyFiles);
+                      size_t howManyFiles,
+                      bool showdate);
+string formatFileDate(fs::file_time_type time);
 
 class FileInfo
 {
@@ -50,10 +54,15 @@ class FileInfo
     string extension;
     string relativePath;
     long long size;
+    fs::file_time_type lastWriteTime;
 
 public:
-    FileInfo(string f, string e, string r, long long s) : filename(f), extension(e), relativePath(r), size(s)
+    FileInfo(string f, string e, string r, long long s, fs::file_time_type L) : filename(f), extension(e), relativePath(r), size(s), lastWriteTime(L)
     {
+    }
+    fs::file_time_type getlastwritetime() const
+    {
+        return lastWriteTime;
     }
     string getrelativePath() const
     {
@@ -71,17 +80,29 @@ public:
     {
         return size;
     }
-    void display(long long sizedivider, int nameWidth, int relativePathwidth) const
+    void display(long long sizedivider, int nameWidth, int relativePathwidth, bool showdate) const
     {
         // formating
         string formatdata = format("{:.2f} {}", sizeconverter(size).first, sizeconverter(size).second);
-
-        cout << setw(nameWidth) << left << filename << "  ";
-        cout << setw(relativePathwidth) << relativePath << "  ";
-        cout << setw(18) << extension << "  ";
-        cout << setw(15) << right << formatdata << "  ";
-        cout << setw(15) << right << getsizecategory(sizedivider, *this);
-        cout << endl;
+        if (showdate)
+        {
+            cout << setw(nameWidth) << left << filename << "  ";
+            cout << setw(relativePathwidth) << relativePath << "  ";
+            cout << setw(12) << extension << "  ";
+            cout << setw(15) << right << formatdata << "  ";
+            cout << setw(15) << right << getsizecategory(sizedivider, *this) << "  ";
+            cout << setw(20) << right << formatFileDate(lastWriteTime);
+            cout << endl;
+        }
+        else
+        {
+            cout << setw(nameWidth) << left << filename << "  ";
+            cout << setw(relativePathwidth) << relativePath << "  ";
+            cout << setw(18) << extension << "  ";
+            cout << setw(15) << right << formatdata << "  ";
+            cout << setw(15) << right << getsizecategory(sizedivider, *this);
+            cout << endl;
+        }
     }
 };
 
@@ -402,12 +423,29 @@ long long convertTobytes(double value, string unit)
     }
 }
 
-void DisplayFileTable(const vector<FileInfo> &files, long long sizeDivider, size_t howManyFiles)
+string formatFileDate(fs::file_time_type time)
+{
+    auto systemTime =
+        chrono::time_point_cast<chrono::system_clock::duration>(
+            time - fs::file_time_type::clock::now() + chrono::system_clock::now());
+
+    time_t calendarTime = chrono::system_clock::to_time_t(systemTime);
+
+    tm localTime = *localtime(&calendarTime);
+
+    ostringstream output;
+    output << put_time(&localTime, "%d-%m-%Y %H:%M");
+
+    return output.str();
+}
+
+void DisplayFileTable(const vector<FileInfo> &files, long long sizeDivider, size_t howManyFiles, bool showdate)
 {
     // future mai yeh hardcoded value ko dynamic bana dege
-    int extensionWidth = 15;
+    int extensionWidth = 12;
     int sizeWidth = 15;
-    int categoryWidth = 18;
+    int categoryWidth = 15;
+    int dateWidth = 20;
 
     // value reset
     int maxNameLength = 0;
@@ -440,21 +478,45 @@ void DisplayFileTable(const vector<FileInfo> &files, long long sizeDivider, size
         maxLocationLength = 15;
     }
     // table
-    cout << setw(maxNameLength) << left << "Name" << "  ";
-    cout << setw(maxLocationLength) << "Location" << "  ";
-    cout << setw(extensionWidth) << "Extension" << "  ";
-    cout << setw(sizeWidth) << right << "Size" << "  ";
-    cout << setw(categoryWidth) << right << "Category" << "  ";
-    cout << endl;
-    cout << setfill('_') << setw(maxNameLength + (extensionWidth + sizeWidth + categoryWidth + (maxLocationLength) + 8)) << "_" << endl
-         << endl; //+8 because of gaps.
-    cout << setfill(' ');
-    // display
-    for (size_t i = 0; i < howManyFiles; i++)
+    if (showdate)
     {
-        files[i].display(sizeDivider, maxNameLength, maxLocationLength);
+        cout << setw(maxNameLength) << left << "Name" << "  ";
+        cout << setw(maxLocationLength) << "Location" << "  ";
+        cout << setw(extensionWidth) << "Extension" << "  ";
+        cout << setw(sizeWidth) << right << "Size" << "  ";
+        cout << setw(categoryWidth) << right << "Category" << "  ";
+        cout << setw(dateWidth) << right << "Last Modified" << "  ";
+
+        cout << endl;
+        cout << setfill('_') << setw(maxNameLength + (extensionWidth + sizeWidth + categoryWidth + dateWidth + (maxLocationLength) + 12)) << "_" << endl
+             << endl; //+8 because of gaps.
+        cout << setfill(' ');
+        // display
+        for (size_t i = 0; i < howManyFiles; i++)
+        {
+            files[i].display(sizeDivider, maxNameLength, maxLocationLength, showdate);
+        }
+        cout << "\n\n";
     }
-    cout << "\n\n";
+    else
+    {
+        cout << setw(maxNameLength) << left << "Name" << "  ";
+        cout << setw(maxLocationLength) << "Location" << "  ";
+        cout << setw(extensionWidth) << "Extension" << "  ";
+        cout << setw(sizeWidth) << right << "Size" << "  ";
+        cout << setw(categoryWidth) << right << "Category" << "  ";
+
+        cout << endl;
+        cout << setfill('_') << setw(maxNameLength + (extensionWidth + sizeWidth + categoryWidth + (maxLocationLength) + 8)) << "_" << endl
+             << endl; //+8 because of gaps.
+        cout << setfill(' ');
+        // display
+        for (size_t i = 0; i < howManyFiles; i++)
+        {
+            files[i].display(sizeDivider, maxNameLength, maxLocationLength, showdate);
+        }
+        cout << "\n\n";
+    }
 }
 
 string trim(const string &s)
@@ -516,6 +578,7 @@ int main()
 
     // user menu variables
     string lower_input_extension;
+    bool showdate = false;
     bool ValidInput = false;
     string input_lower;
     string compareable_category;
@@ -568,8 +631,8 @@ int main()
 
             // parent path
             fs::path parentpath = Directory.path().parent_path();
-
-            FileInfo file(filename, extension, parentpath.string(), size);
+            auto Time = fs::last_write_time(path);
+            FileInfo file(filename, extension, parentpath.string(), size, Time);
             files.push_back(file);
             EntriesVisited = 1;
             isFile = true;
@@ -610,8 +673,8 @@ int main()
                         fs::path parentpath = entry.path().parent_path();
                         // relative path
                         fs::path relativefilepath = fs::relative(parentpath, path);
-
-                        FileInfo file(filename, extension, relativefilepath.string(), size);
+                        auto Time = fs::last_write_time(entry.path());
+                        FileInfo file(filename, extension, relativefilepath.string(), size, Time);
 
                         // obj data storing
                         files.push_back(file);
@@ -824,7 +887,7 @@ int main()
                  { return a.getsize() > b.getsize(); });
             //  [] -> yeh hai lambda function new chiz sikhe hai...
 
-            DisplayFileTable(copy_fileSorter, sizeDivider, FiletoDisplay);
+            DisplayFileTable(copy_fileSorter, sizeDivider, FiletoDisplay, showdate);
 
             cout << "\nYOUR PATH :  " << "\033[32m" << path << "\033[0m" << endl
                  << endl;
@@ -934,7 +997,7 @@ int main()
 
                             case 1:
                             {
-                                DisplayFileTable(filteredFilesbyextension, sizeDivider, filteredFilesbyextension.size());
+                                DisplayFileTable(filteredFilesbyextension, sizeDivider, filteredFilesbyextension.size(), showdate);
                                 filteredFilesbyextension.clear();
                                 break;
                             }
@@ -1009,7 +1072,7 @@ int main()
                                 case 1:
                                 {
 
-                                    DisplayFileTable(filteredFilesbycategory, sizeDivider, filteredFilesbycategory.size());
+                                    DisplayFileTable(filteredFilesbycategory, sizeDivider, filteredFilesbycategory.size(), showdate);
                                     input_lower.clear();
                                     filteredFilesbycategory.clear();
                                     break;
@@ -1179,7 +1242,7 @@ int main()
 
                                 case 1:
                                 {
-                                    DisplayFileTable(filteredFilesbysize, sizeDivider, filteredFilesbysize.size());
+                                    DisplayFileTable(filteredFilesbysize, sizeDivider, filteredFilesbysize.size(), showdate);
                                     filteredFilesbysize.clear();
                                     break;
                                 }
@@ -1300,7 +1363,7 @@ int main()
 
                     case 1:
                     {
-                        DisplayFileTable(fileSearched, sizeDivider, fileSearched.size());
+                        DisplayFileTable(fileSearched, sizeDivider, fileSearched.size(), showdate);
                         fileSearched.clear();
                         break;
                     }
@@ -1431,7 +1494,7 @@ int main()
 
                                     case 1:
                                     {
-                                        DisplayFileTable(copy_fileSorter, sizeDivider, copy_fileSorter.size());
+                                        DisplayFileTable(copy_fileSorter, sizeDivider, copy_fileSorter.size(), showdate);
                                         copy_fileSorter.clear();
                                         break;
                                     }
@@ -1499,7 +1562,7 @@ int main()
 
                                     case 1:
                                     {
-                                        DisplayFileTable(copy_fileSorter, sizeDivider, copy_fileSorter.size());
+                                        DisplayFileTable(copy_fileSorter, sizeDivider, copy_fileSorter.size(), showdate);
                                         copy_fileSorter.clear();
                                         break;
                                     }
@@ -1611,7 +1674,7 @@ int main()
 
                                     case 1:
                                     {
-                                        DisplayFileTable(copy_fileSorter, sizeDivider, copy_fileSorter.size());
+                                        DisplayFileTable(copy_fileSorter, sizeDivider, copy_fileSorter.size(), showdate);
                                         copy_fileSorter.clear();
                                         break;
                                     }
@@ -1675,7 +1738,7 @@ int main()
 
                                     case 1:
                                     {
-                                        DisplayFileTable(copy_fileSorter, sizeDivider, copy_fileSorter.size());
+                                        DisplayFileTable(copy_fileSorter, sizeDivider, copy_fileSorter.size(), showdate);
                                         copy_fileSorter.clear();
                                         break;
                                     }
@@ -1787,7 +1850,7 @@ int main()
 
                                     case 1:
                                     {
-                                        DisplayFileTable(copy_fileSorter, sizeDivider, copy_fileSorter.size());
+                                        DisplayFileTable(copy_fileSorter, sizeDivider, copy_fileSorter.size(), showdate);
                                         copy_fileSorter.clear();
                                         break;
                                     }
@@ -1852,7 +1915,7 @@ int main()
 
                                     case 1:
                                     {
-                                        DisplayFileTable(copy_fileSorter, sizeDivider, copy_fileSorter.size());
+                                        DisplayFileTable(copy_fileSorter, sizeDivider, copy_fileSorter.size(), showdate);
                                         copy_fileSorter.clear();
                                         break;
                                     }
@@ -1919,20 +1982,137 @@ int main()
                             cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
                             continue;
                         }
+                        vector<FileInfo> copy_fileSorter;
                         switch (option)
                         {
                         case 1:
                         {
-                            cout << "\033[31m";
-                            cout << "UNDER DEVELOPMENT \n";
-                            cout << "\033[0m";
+                            // -----------NEWEST -> OLDEST sorting-------------
+                            // creating a copy vector--> so that the orignal scan order remains same
+                            copy_fileSorter = files;
+
+                            sort(copy_fileSorter.begin(), copy_fileSorter.end(),
+                                 [](const FileInfo &a, const FileInfo &b)
+                                 { return (a.getlastwritetime()) > (b.getlastwritetime()); });
+                            //  [] -> yeh hai lambda function new chiz sikhe hai...
+                            if (copy_fileSorter.empty())
+                            {
+                                cout << "\033[31m" << "NO FILES SORTED!! " << "\033[0m" << "\n";
+                            }
+                            else
+                            {
+                                cout << "TOTAL FILES SORTED : " << "\033[32m" << copy_fileSorter.size() << "\033[0m" << endl;
+
+                                cout << "[1] VIEW FILES DETAILS\n";
+                                cout << "[2] RETURN TO BACK MENU\n";
+                                cout << "YOUR CHOICE : ";
+                                option = 0;
+                                cin >> option;
+                                if (cin.fail())
+                                {
+                                    cout << "\033[31m";
+                                    cout << "INVALID OPTION \n";
+                                    cout << "\033[0m";
+                                    // error state reset
+                                    cin.clear();
+                                    // buffer cleaning
+                                    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                                }
+                                else
+                                {
+                                    switch (option)
+                                    {
+
+                                    case 1:
+                                    {
+                                        DisplayFileTable(copy_fileSorter, sizeDivider, copy_fileSorter.size(), true);
+                                        copy_fileSorter.clear();
+                                        break;
+                                    }
+                                    case 2:
+                                    {
+                                        cout << "\033[32m";
+                                        cout << "GOING BACK \n";
+                                        copy_fileSorter.clear();
+                                        cout << "\033[0m";
+                                        break;
+                                    }
+                                    default:
+                                    {
+                                        cout << "\033[32m";
+                                        cout << "INVALID OPTION\n";
+                                        copy_fileSorter.clear();
+                                        cout << "\033[0m";
+                                        break;
+                                    }
+                                    }
+                                }
+                            }
                             break;
                         }
                         case 2:
                         {
-                            cout << "\033[31m";
-                            cout << "UNDER DEVELOPMENT \n";
-                            cout << "\033[0m";
+                            // ------------OLDEST TO NEWEST sorting-------------
+                            // creating a copy vector--> so that the orignal scan order remains same
+                            copy_fileSorter = files;
+
+                            sort(copy_fileSorter.begin(), copy_fileSorter.end(),
+                                 [](const FileInfo &a, const FileInfo &b)
+                                 { return (a.getlastwritetime()) < (b.getlastwritetime()); });
+                            //  [] -> yeh hai lambda function new chiz sikhe hai...
+                            if (copy_fileSorter.empty())
+                            {
+                                cout << "\033[31m" << "NO FILES SORTED!! " << "\033[0m" << "\n";
+                            }
+                            else
+                            {
+                                cout << "TOTAL FILES SORTED : " << "\033[32m" << copy_fileSorter.size() << "\033[0m" << endl;
+
+                                cout << "[1] VIEW FILES DETAILS\n";
+                                cout << "[2] RETURN TO BACK MENU\n";
+                                cout << "YOUR CHOICE : ";
+                                option = 0;
+                                cin >> option;
+                                if (cin.fail())
+                                {
+                                    cout << "\033[31m";
+                                    cout << "INVALID OPTION \n";
+                                    cout << "\033[0m";
+                                    // error state reset
+                                    cin.clear();
+                                    // buffer cleaning
+                                    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                                }
+                                else
+                                {
+                                    switch (option)
+                                    {
+
+                                    case 1:
+                                    {
+                                        DisplayFileTable(copy_fileSorter, sizeDivider, copy_fileSorter.size(), true);
+                                        copy_fileSorter.clear();
+                                        break;
+                                    }
+                                    case 2:
+                                    {
+                                        cout << "\033[32m";
+                                        cout << "GOING BACK \n";
+                                        copy_fileSorter.clear();
+                                        cout << "\033[0m";
+                                        break;
+                                    }
+                                    default:
+                                    {
+                                        cout << "\033[32m";
+                                        cout << "INVALID OPTION\n";
+                                        copy_fileSorter.clear();
+                                        cout << "\033[0m";
+                                        break;
+                                    }
+                                    }
+                                }
+                            }
                             break;
                         }
                         case 3:
