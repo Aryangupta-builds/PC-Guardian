@@ -157,6 +157,7 @@ void reportFile(const FileInfo &file, const map<string, string> &category)
     cout << setw(20) << "CATEGORY     : " << categoryname << "\n";
     cout << setw(20) << "SIZE TYPE    : " << getSingleFileSizeCategory(size) << "\n";
     cout << setw(20) << "SCAN STATUS  : " << "\033[32m" << "VALID" << "\033[0m" << "\n";
+    cout << "\n";
 }
 pair<double, string> sizeconverter(long long bytesize)
 {
@@ -544,7 +545,7 @@ int main()
          << "\033[32m"
          << "PC GUARDIAN"
          << "\033[0m"
-         << " v3.0\n";
+         << " v4.0\n";
 
     cout << "              " << "\033[36m" << "Smart File & System Health Manager\n"
          << "\033[0m";
@@ -788,6 +789,7 @@ int main()
                 sizeDivider = 1;
             }
             reportFile(files[0], category);
+            return 0;
         }
         else
         {
@@ -1308,9 +1310,12 @@ int main()
             cout << "--------------------------------\n";
 
             string FileNameSearch;
+            string copy_FileNameSearch;
+
             cout << "ENTER THE NAME OF FILE :";
             cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
             getline(cin, FileNameSearch);
+            copy_FileNameSearch = FileNameSearch;
             FileNameSearch = trim(FileNameSearch);
             if (FileNameSearch.empty())
             {
@@ -1334,7 +1339,7 @@ int main()
 
             if (fileSearched.empty())
             {
-                cout << "\033[31m" << "NO FILES FOUND FOR NAME : " << FileNameSearch << "\033[0m" << "\n";
+                cout << "\033[31m" << "NO FILES FOUND FOR NAME : " << copy_FileNameSearch << "\033[0m" << "\n";
             }
             else
             {
@@ -2173,9 +2178,83 @@ int main()
         }
         case 5:
         {
-            cout << "\033[31m";
-            cout << "UNDER DEVELOPMENT \n";
-            cout << "\033[0m";
+            // ###############################
+            // FILE REPORT MENU
+            // ###############################
+            cout << "--------------------------------\n";
+            cout << "          " << "\033[33m" << "FILE REPORT\n"
+                 << "\033[0m";
+            cout << "--------------------------------\n";
+
+            cout << "Enter file name to search : ";
+            string searchedfile;
+            string copy_searchedfile;
+            cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            getline(cin, searchedfile);
+
+            copy_searchedfile = searchedfile;
+
+            searchedfile = trim(searchedfile);
+            if (searchedfile.empty())
+            {
+                cout << "\033[31m";
+                cout << "YOU HAVE NOT ENTERED THE FILENAME\n";
+                cout << "\033[0m";
+                break;
+            }
+
+            string FullFileName;
+            searchedfile = tolowerCASE(searchedfile);
+            for (const auto &item : files)
+            {
+                FullFileName = tolowerCASE(item.getfilename() + item.getextension());
+
+                if (FullFileName.find(searchedfile) != string::npos)
+                {
+                    fileSearched.push_back(item);
+                }
+            }
+            if (fileSearched.empty())
+            {
+                cout << "\033[31m" << "NO FILE FOUND FOR :" << copy_searchedfile << "\033[0m" << endl;
+                break;
+            }
+            cout << "\033[33m" << "\nMATCHING FILE\n"
+                 << "\033[0m";
+            cout << "--------------------------------\n";
+            for (size_t i = 0; i < fileSearched.size(); i++)
+            {
+                cout << "[" << i + 1 << "]";
+                cout << fileSearched[i].getfilename();
+                cout << fileSearched[i].getextension();
+                cout << "\n";
+            }
+            cout << "\nSELECT THE FILE :";
+            int selectedfile;
+            cin >> selectedfile;
+            if (cin.fail())
+            {
+                cout << "\033[31m";
+                cout << "INVALID OPTION \n";
+                cout << "\033[0m";
+                // error state reset
+                cin.clear();
+                // buffer cleaning
+                cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                fileSearched.clear();
+                break;
+            }
+            if (selectedfile < 1 || selectedfile > fileSearched.size())
+            {
+                cout << "\033[31m";
+                cout << "INVALID FILE NUMBER\n";
+                cout << "\033[0m";
+                fileSearched.clear();
+                break;
+            }
+
+            reportFile(fileSearched[selectedfile - 1], category);
+            fileSearched.clear();
             break;
         }
         case 6:
