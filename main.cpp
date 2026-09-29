@@ -535,6 +535,48 @@ string trim(const string &s)
     return s.substr(start, end - start);
 }
 
+bool moveFILE(const fs::path source, const fs::path destinationFOLDER)
+{
+    if (!fs::exists(source))
+    {
+        cout << "invalid source\n";
+        return false;
+    }
+
+    if (!fs::exists(destinationFOLDER))
+    {
+        error_code ec;
+        fs::create_directory(destinationFOLDER, ec);
+        if (ec)
+        {
+            cout<<"\033[31m";
+            cout << "FOLDER CREATION FAILED!\n";
+            cout << "ERROR :" << ec.message() << endl;
+            cout<<"\033[0m";
+            return false;
+        }
+    }
+    // basically yaha pe destinationFOLDER mai source.filename() add hua hai 
+    // path ko add karne ke liye / use karte hai
+    fs::path destinationFILE = destinationFOLDER / source.filename();
+    error_code ec;
+    fs::rename(source, destinationFILE, ec);
+
+    if (ec)
+    {
+        cout<<"\033[31m";
+        cout << "FAILED FILE MOVING!\n";
+        cout << "ERROR :" << ec.message() << endl;
+        cout<<"\033[0m";
+        return false;
+    }
+    else
+    {
+        cout << "SUCCESS\n";
+        return true;
+    }
+}
+
 int main()
 {
     // startup
@@ -897,7 +939,7 @@ int main()
     }
 
     // ---------------------------
-    // USER MENU
+    // * USER MENU
     // ---------------------------
 
     int user_choice_main_menu = 0;
@@ -928,7 +970,7 @@ int main()
         case 1:
         {
             // ###############################
-            // FILE FILTER MENU
+            //* FILE FILTER MENU
             // ###############################
             cout << "--------------------------------\n";
             cout << "          " << "\033[33m" << "FILE FILTER\n"
@@ -1302,7 +1344,7 @@ int main()
         {
 
             // ###############################
-            // FILE SEARCH MENU
+            //* FILE SEARCH MENU
             // ###############################
             cout << "--------------------------------\n";
             cout << "          " << "\033[33m" << "FILE SEARCH\n"
@@ -1396,7 +1438,7 @@ int main()
         case 3:
         {
             // ###############################
-            // FILE SORT MENU
+            //* FILE SORT MENU
             // ###############################
             cout << "--------------------------------\n";
             cout << "          " << "\033[33m" << "FILE SORT\n"
@@ -2171,15 +2213,99 @@ int main()
         }
         case 4:
         {
-            cout << "\033[31m";
-            cout << "UNDER DEVELOPMENT \n";
-            cout << "\033[0m";
+            // ###############################
+            //*  FOLDER SEPERATION MENU
+            // ###############################
+            cout << "--------------------------------\n";
+            cout << "     "<<"\033[33m"<<"FOLDER SEPARATION MENU\n"
+                 << "\033[0m";
+            cout << "--------------------------------\n";
+            int user_choice_fileSeperation_menu = 0;
+            do
+            {
+                cout << "[1] CATEGORY BASED\n";
+                cout << "[2] NAME BASED\n";
+                cout << "[3] SIZE BASED\n";
+                cout << "[4] UNDO CHANGES\n";
+                cout << "[5] BACK\n";
+                cout << "YOUR CHOICE : ";
+                cin >> user_choice_fileSeperation_menu;
+                if (cin.fail())
+                {
+                    cout << "\033[31m";
+                    cout << "INVALID OPTION \n";
+                    cout << "\033[0m";
+                    // error state reset
+                    cin.clear();
+                    // buffer cleaning
+                    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                    continue;
+                }
+
+                switch (user_choice_fileSeperation_menu)
+                {
+                case 1:
+                {
+                    cout << "\033[31m";
+                    cout << "UNDER DEVELOPMENT\n";
+                    cout << "\033[0m";
+                    break;
+                }
+                case 2:
+                {
+                    cout << "\033[31m";
+                    cout << "UNDER DEVELOPMENT\n";
+                    cout << "\033[0m";
+                    break;
+                }
+                case 3:
+                {
+                    cout << "\033[31m";
+                    cout << "UNDER DEVELOPMENT\n";
+                    cout << "\033[0m";
+                    break;
+                }
+                case 4:
+                {
+                    cout << "\033[31m";
+                    cout << "UNDER DEVELOPMENT\n";
+                    cout << "\033[0m";
+                    break;
+                }
+                case 5:{
+                    cout<<"\033[32m";
+                    cout<<"GOING BACK...\n";
+                    cout<<"\033[0m";
+                    break;
+                }
+                default:
+                {
+                    if (cin.fail())
+                    {
+                        cout << "\033[31m";
+                        cout << "INVALID OPTION \n";
+                        cout << "\033[0m";
+                        // error state reset
+                        cin.clear();
+                        // buffer cleaning
+                        cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                    }
+                    else
+                    {
+                        cout << "\033[31m";
+                        cout << "INVALID OPTION \n";
+                        cout << "\033[0m";
+                    }
+                }
+                }
+            } while (user_choice_fileSeperation_menu != 5);
+
             break;
         }
         case 5:
         {
             // ###############################
-            // FILE REPORT MENU
+            //* FILE REPORT MENU
             // ###############################
             cout << "--------------------------------\n";
             cout << "          " << "\033[33m" << "FILE REPORT\n"
