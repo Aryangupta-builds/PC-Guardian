@@ -14,6 +14,7 @@
 #include <cctype>
 #include <sstream>
 #include <ctime>
+#include <set>
 using namespace std;
 namespace fs = std::filesystem;
 
@@ -549,14 +550,14 @@ bool moveFILE(const fs::path source, const fs::path destinationFOLDER)
         fs::create_directory(destinationFOLDER, ec);
         if (ec)
         {
-            cout<<"\033[31m";
+            cout << "\033[31m";
             cout << "FOLDER CREATION FAILED!\n";
             cout << "ERROR :" << ec.message() << endl;
-            cout<<"\033[0m";
+            cout << "\033[0m";
             return false;
         }
     }
-    // basically yaha pe destinationFOLDER mai source.filename() add hua hai 
+    // basically yaha pe destinationFOLDER mai source.filename() add hua hai
     // path ko add karne ke liye / use karte hai
     fs::path destinationFILE = destinationFOLDER / source.filename();
     error_code ec;
@@ -564,15 +565,14 @@ bool moveFILE(const fs::path source, const fs::path destinationFOLDER)
 
     if (ec)
     {
-        cout<<"\033[31m";
+        cout << "\033[31m";
         cout << "FAILED FILE MOVING!\n";
         cout << "ERROR :" << ec.message() << endl;
-        cout<<"\033[0m";
+        cout << "\033[0m";
         return false;
     }
     else
     {
-        cout << "SUCCESS\n";
         return true;
     }
 }
@@ -620,6 +620,8 @@ int main()
     const int Invalidpath = 2;
 
     // user menu variables
+    int totalEnteries = 0;
+    int processedEnteries = 0;
     string lower_input_extension;
     bool showdate = false;
     bool ValidInput = false;
@@ -642,10 +644,11 @@ int main()
     vector<FileInfo> files;
 
     // flags
+    bool allMoveSuccessFull = false;
     bool isFile = false;
     bool scanComplete = true;
 
-    // // maps-------------
+    // *-------- maps-------------
     map<string, string> category = createCategoryMap();
 
     try
@@ -2217,7 +2220,7 @@ int main()
             //*  FOLDER SEPERATION MENU
             // ###############################
             cout << "--------------------------------\n";
-            cout << "     "<<"\033[33m"<<"FOLDER SEPARATION MENU\n"
+            cout << "     " << "\033[33m" << "FOLDER SEPARATION MENU\n"
                  << "\033[0m";
             cout << "--------------------------------\n";
             int user_choice_fileSeperation_menu = 0;
@@ -2242,13 +2245,93 @@ int main()
                     continue;
                 }
 
+                set<string> availablecategories;
                 switch (user_choice_fileSeperation_menu)
                 {
                 case 1:
                 {
-                    cout << "\033[31m";
-                    cout << "UNDER DEVELOPMENT\n";
-                    cout << "\033[0m";
+                    // total kitni file process hua
+                    totalEnteries = files.size();
+                    processedEnteries = 0;
+
+                    cout << "\033[33m" << "CATEGORY ORGANIZATION\n"
+                         << "\033[0m";
+                        //  category jo create hone wali hai
+                    for (const auto &file : files)
+                    {
+                        auto extension = file.getextension();
+                        auto it = category.find(extension);
+                        if (it != category.end())
+                        {
+                            availablecategories.insert(it->second);
+                        }
+                    }
+                    cout << "The following categories will be created:\n\n";
+                    int i = 1;
+                    for (string ele : availablecategories)
+                    {
+                        cout << "[" << i << "]" << " " << ele << endl;
+                        i++;
+                    }
+                    
+                    // confirmation
+                    cout << "\nDo you want to continue?(Y/N) :";
+                    char user_responce;
+                    cin >> user_responce;
+
+                    if (user_responce == 'y' || user_responce == 'Y')
+                    {
+                        allMoveSuccessFull = true;
+                        for (const auto &file : files)
+                        {
+                            auto extension = file.getextension();
+                            auto it = category.find(extension);
+
+                            fs::path source_path = fs::path(path) / file.getrelativePath() / (file.getfilename() + file.getextension());
+                            // sirf wahi category collect kar raha h jinke files actually available hai
+                            if (it != category.end())
+                            {
+                                fs::path destination_folder = fs::path(path) / it->second;
+                                bool move = moveFILE(source_path, destination_folder);
+                                if (!move)
+                                {
+                                    allMoveSuccessFull = false;
+                                }
+                            }
+                            else
+                            {
+                                // unknown category
+                            }
+                            processedEnteries++;
+                            double percentage = (double(processedEnteries)/totalEnteries)*100;
+                            cout<<"\r";
+                            StaticBar(percentage,Max_bar_length);
+                            cout.flush();
+                        }
+                        cout<<"\n";
+                        if (allMoveSuccessFull)
+                        {
+                            cout << "\033[32m" << "ORGANIZATION COMPLETED SUCCESSFULLY\n"
+                                 << "\033[0m";
+                        }
+                        else
+                        {
+                            cout << "\033[31m" << "ORGANIZATION COMPLETED WITH ERRORS\n"
+                                 << "\033[0m";
+                        }
+                    }
+                    else if (user_responce == 'n' || user_responce == 'N')
+                    {
+                        cout << "\033[32m" << "OPERATION CANCELED SUCCESSFULLY\n"
+                             << "\033[0m";
+                    }
+                    else
+                    {
+                        cout << "\033[31m";
+                        cout << "INVALID OPTION OPT\n";
+                        cout << "\033[0m";
+                    }
+
                     break;
                 }
                 case 2:
@@ -2272,10 +2355,11 @@ int main()
                     cout << "\033[0m";
                     break;
                 }
-                case 5:{
-                    cout<<"\033[32m";
-                    cout<<"GOING BACK...\n";
-                    cout<<"\033[0m";
+                case 5:
+                {
+                    cout << "\033[32m";
+                    cout << "GOING BACK...\n";
+                    cout << "\033[0m";
                     break;
                 }
                 default:
