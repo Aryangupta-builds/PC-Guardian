@@ -45,7 +45,7 @@ It is also my way of learning C++ the fun way: instead of solving 100 textbook p
 > *Me, staring at my laptop at some random hour:*
 > **"Bhai... itna storage kaise bhar gaya?! 😭"**
 
-No idea what was eating my disk. Downloads folder = a battlefield. `final_v2_REAL_final.pdf` kind of chaos. I could have just opened Windows Storage settings like a normal person, but I decided to write a C++ program instead. Classic.
+No idea what was eating my disk. Downloads folder = a battlefield. Total chaos. I could have just opened Windows Storage settings like a normal person, but nope, I decided to write a C++ program instead. Classic.
 
 That is how PC Guardian was born: first it only *told* me where my storage went, then I got tired of cleaning manually, so it learned to **organize the mess by itself**. 🧹
 
