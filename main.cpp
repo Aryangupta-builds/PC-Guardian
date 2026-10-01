@@ -577,6 +577,12 @@ bool moveFILE(const fs::path source, const fs::path destinationFOLDER)
     }
 }
 
+struct NameRule
+{
+    string keyword;
+    string foldername;
+};
+
 int main()
 {
     // startup
@@ -637,6 +643,7 @@ int main()
     string input_extension;
 
     // vector
+    vector<NameRule> nameRules;
     vector<FileInfo> fileSearched;
     vector<FileInfo> filteredFilesbysize;
     vector<FileInfo> filteredFilesbycategory;
@@ -2244,8 +2251,12 @@ int main()
                     cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
                     continue;
                 }
-
+                //! case 1 ka variable
                 set<string> availablecategories;
+                //! case 2 ka variable
+                string keyword;
+                string folderName;
+                vector<pair<FileInfo, string>> organizedFiles;
                 switch (user_choice_fileSeperation_menu)
                 {
                 case 1:
@@ -2254,9 +2265,9 @@ int main()
                     totalEnteries = files.size();
                     processedEnteries = 0;
 
-                    cout << "\033[33m" << "CATEGORY ORGANIZATION\n"
+                    cout << "\033[33m" << "\nCATEGORY ORGANIZATION\n"
                          << "\033[0m";
-                        //  category jo create hone wali hai
+                    //  category jo create hone wali hai
                     for (const auto &file : files)
                     {
                         auto extension = file.getextension();
@@ -2273,12 +2284,12 @@ int main()
                         cout << "[" << i << "]" << " " << ele << endl;
                         i++;
                     }
-                    
+
                     // confirmation
                     cout << "\nDo you want to continue?(Y/N) :";
                     char user_responce;
                     cin >> user_responce;
-
+                    processedEnteries = 0;
                     if (user_responce == 'y' || user_responce == 'Y')
                     {
                         allMoveSuccessFull = true;
@@ -2303,12 +2314,12 @@ int main()
                                 // unknown category
                             }
                             processedEnteries++;
-                            double percentage = (double(processedEnteries)/totalEnteries)*100;
-                            cout<<"\r";
-                            StaticBar(percentage,Max_bar_length);
+                            double percentage = (double(processedEnteries) / totalEnteries) * 100;
+                            cout << "\r";
+                            StaticBar(percentage, Max_bar_length);
                             cout.flush();
                         }
-                        cout<<"\n";
+                        cout << "\n";
                         if (allMoveSuccessFull)
                         {
                             cout << "\033[32m" << "ORGANIZATION COMPLETED SUCCESSFULLY\n"
@@ -2331,14 +2342,97 @@ int main()
                         cout << "INVALID OPTION OPT\n";
                         cout << "\033[0m";
                     }
-
+                    allMoveSuccessFull = false;
                     break;
                 }
                 case 2:
                 {
-                    cout << "\033[31m";
-                    cout << "UNDER DEVELOPMENT\n";
-                    cout << "\033[0m";
+                    processedEnteries = 0;
+                    totalEnteries = 0;
+                    allMoveSuccessFull = true;
+                    //*NAME BASED ORGANIZATION
+                    cout << "\033[33m" << "\nNAME-BASED ORGANIZATION\n"
+                         << "\033[0m";
+                    char user_responce;
+
+                    do
+                    {
+                        cout << "Enter keyword to organize files : ";
+                        cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                        getline(cin, keyword);
+                        if (keyword.empty())
+                        {
+                            cout << "\033[31m";
+                            cout << "YOU HAVE NOT ENTERED THE KEYWORD\n";
+                            cout << "\033[0m";
+                            continue;
+                        }
+                        keyword = trim(keyword);
+
+                        cout << "Enter folder name : ";
+                        getline(cin, folderName);
+                        if (folderName.empty())
+                        {
+                            cout << "\033[31m";
+                            cout << "YOU HAVE NOT ENTERED THE FOLDER NAME\n";
+                            cout << "\033[0m";
+                            continue;
+                        }
+                        folderName = trim(folderName);
+                        nameRules.push_back({keyword, folderName});
+                        cout << "Add another rule? (Y/N) : ";
+                        cin >> user_responce;
+                    } while (!(user_responce == 'N' || user_responce == 'n'));
+
+                    for (const auto &rule : nameRules)
+                    {
+                        string keyword = rule.keyword;
+                        string folderName = rule.foldername;
+                        string FullFileName;
+                        keyword = tolowerCASE(keyword);
+                        for (const auto &item : files)
+                        {
+                            FullFileName = tolowerCASE(item.getfilename() + item.getextension());
+
+                            if (FullFileName.find(keyword) != string::npos)
+                            {
+                                organizedFiles.push_back({item, folderName});
+                                // cout << "\033[33m" << "file :" << item.getfilename() << "->" << folderName << "\033[0m" << endl;
+                            }
+                        }
+                    }
+                    totalEnteries = organizedFiles.size();
+                    for (const auto &fileFolderPair : organizedFiles)
+                    {
+                        const FileInfo &file = fileFolderPair.first;
+                        const string &folderName = fileFolderPair.second;
+                        fs::path source_path = fs::path(path) / file.getrelativePath() / (file.getfilename() + file.getextension());
+                        fs::path destination_folder = fs::path(path) / folderName;
+                        // cout<<source_path<<"->"<<destination_folder<<endl;
+
+                        // bar
+                        processedEnteries++;
+                        double percentage = (double(processedEnteries) / totalEnteries) * 100;
+                        cout << "\r";
+                        StaticBar(percentage, Max_bar_length);
+                        cout.flush();
+                        bool move = moveFILE(source_path, destination_folder);
+                        if (!move)
+                        {
+                            allMoveSuccessFull = false;
+                        }
+                    }
+                    cout << "\n";
+                    if (allMoveSuccessFull)
+                    {
+                        cout << "\033[32m" << "ORGANIZATION COMPLETED SUCCESSFULLY\n"
+                             << "\033[0m";
+                    }
+                    else
+                    {
+                        cout << "\033[31m" << "ORGANIZATION COMPLETED WITH ERRORS\n"
+                             << "\033[0m";
+                    }
                     break;
                 }
                 case 3:
