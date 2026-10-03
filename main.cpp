@@ -2254,9 +2254,10 @@ int main()
                 //! case 1 ka variable
                 set<string> availablecategories;
                 //! case 2 ka variable
-                string keyword;
-                string folderName;
+                string keyword_input;
+                string folderName_input;
                 vector<pair<FileInfo, string>> organizedFiles;
+                vector<FileInfo> alreadyOrganized;
                 switch (user_choice_fileSeperation_menu)
                 {
                 case 1:
@@ -2347,60 +2348,85 @@ int main()
                 }
                 case 2:
                 {
+                    nameRules.clear();
+                    organizedFiles.clear();
+                    alreadyOrganized.clear();
                     processedEnteries = 0;
                     totalEnteries = 0;
                     allMoveSuccessFull = true;
+
                     //*NAME BASED ORGANIZATION
                     cout << "\033[33m" << "\nNAME-BASED ORGANIZATION\n"
                          << "\033[0m";
                     char user_responce;
 
+                    //*NAME BASED ORGANIZATION RULE DEFINATION
                     do
                     {
                         cout << "Enter keyword to organize files : ";
                         cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-                        getline(cin, keyword);
-                        if (keyword.empty())
+                        getline(cin, keyword_input);
+                        if (keyword_input.empty())
                         {
                             cout << "\033[31m";
                             cout << "YOU HAVE NOT ENTERED THE KEYWORD\n";
                             cout << "\033[0m";
                             continue;
                         }
-                        keyword = trim(keyword);
+                        keyword_input = trim(keyword_input);
 
                         cout << "Enter folder name : ";
-                        getline(cin, folderName);
-                        if (folderName.empty())
+                        getline(cin, folderName_input);
+                        if (folderName_input.empty())
                         {
                             cout << "\033[31m";
                             cout << "YOU HAVE NOT ENTERED THE FOLDER NAME\n";
                             cout << "\033[0m";
                             continue;
                         }
-                        folderName = trim(folderName);
-                        nameRules.push_back({keyword, folderName});
+                        folderName_input = trim(folderName_input);
+                        nameRules.push_back({keyword_input, folderName_input});
                         cout << "Add another rule? (Y/N) : ";
                         cin >> user_responce;
                     } while (!(user_responce == 'N' || user_responce == 'n'));
 
+                    // *NAME RULEs
                     for (const auto &rule : nameRules)
                     {
                         string keyword = rule.keyword;
                         string folderName = rule.foldername;
                         string FullFileName;
                         keyword = tolowerCASE(keyword);
+
                         for (const auto &item : files)
                         {
-                            FullFileName = tolowerCASE(item.getfilename() + item.getextension());
 
-                            if (FullFileName.find(keyword) != string::npos)
+                            // checking if the file is already found or not
+                            bool alreadyfound = false;
+                            for (const auto &organized : alreadyOrganized)
+                            {
+                                // fs::path organizedpath = organized.getrelativePath() / (organized.getfilename() + organized.getextension());
+                                // fs::path currentpath = item.getrelativePath() / (item.getfilename() + item.getextension());
+                                if (organized.getfilename() == item.getfilename() &&
+                                    organized.getextension() == item.getextension() &&
+                                    organized.getrelativePath() == item.getrelativePath())
+                                {
+                                    alreadyfound = true;
+                                    break;
+                                }
+                            }
+
+                            // checking if the file name contains the keyword and is not already organized
+                            FullFileName = tolowerCASE(item.getfilename() + item.getextension());
+                            if (FullFileName.find(keyword) != string::npos && !alreadyfound)
                             {
                                 organizedFiles.push_back({item, folderName});
-                                // cout << "\033[33m" << "file :" << item.getfilename() << "->" << folderName << "\033[0m" << endl;
+                                alreadyOrganized.push_back(item);
                             }
                         }
                     }
+
+                    // moving files accourding to the organizedFiles vector
                     totalEnteries = organizedFiles.size();
                     for (const auto &fileFolderPair : organizedFiles)
                     {
@@ -2408,7 +2434,6 @@ int main()
                         const string &folderName = fileFolderPair.second;
                         fs::path source_path = fs::path(path) / file.getrelativePath() / (file.getfilename() + file.getextension());
                         fs::path destination_folder = fs::path(path) / folderName;
-                        // cout<<source_path<<"->"<<destination_folder<<endl;
 
                         // bar
                         processedEnteries++;
