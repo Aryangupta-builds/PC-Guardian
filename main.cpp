@@ -583,6 +583,12 @@ struct NameRule
     string foldername;
 };
 
+struct sizeRule
+{
+    long long minSize;
+    long long maxSize;
+    string folderName_input;
+};
 int main()
 {
     // startup
@@ -2258,6 +2264,8 @@ int main()
                 string folderName_input;
                 vector<pair<FileInfo, string>> organizedFiles;
                 vector<FileInfo> alreadyOrganized;
+                //! case 3 ka variable
+                vector<sizeRule> sizeRules;
                 switch (user_choice_fileSeperation_menu)
                 {
                 case 1:
@@ -2320,15 +2328,15 @@ int main()
                             StaticBar(percentage, Max_bar_length);
                             cout.flush();
                         }
-                        cout << "\n";
+
                         if (allMoveSuccessFull)
                         {
-                            cout << "\033[32m" << "ORGANIZATION COMPLETED SUCCESSFULLY\n"
+                            cout << "\033[32m" << "\nORGANIZATION COMPLETED SUCCESSFULLY\n"
                                  << "\033[0m";
                         }
                         else
                         {
-                            cout << "\033[31m" << "ORGANIZATION COMPLETED WITH ERRORS\n"
+                            cout << "\033[31m" << "\nORGANIZATION COMPLETED WITH ERRORS\n"
                                  << "\033[0m";
                         }
                     }
@@ -2447,24 +2455,224 @@ int main()
                             allMoveSuccessFull = false;
                         }
                     }
-                    cout << "\n";
+
                     if (allMoveSuccessFull)
                     {
-                        cout << "\033[32m" << "ORGANIZATION COMPLETED SUCCESSFULLY\n"
+                        cout << "\033[32m" << "\nORGANIZATION COMPLETED SUCCESSFULLY\n"
                              << "\033[0m";
                     }
                     else
                     {
-                        cout << "\033[31m" << "ORGANIZATION COMPLETED WITH ERRORS\n"
+                        cout << "\033[31m" << "\nORGANIZATION COMPLETED WITH ERRORS\n"
                              << "\033[0m";
                     }
                     break;
                 }
                 case 3:
                 {
-                    cout << "\033[31m";
-                    cout << "UNDER DEVELOPMENT\n";
-                    cout << "\033[0m";
+                    //*SIZE BASED ORGANIZATION
+                    cout << "\033[33m" << "\nSIZE-BASED ORGANIZATION\n"
+                         << "\033[0m";
+                    int user_responce;
+                    do
+                    {
+                        cout << "[1] DEFAULT SIZE CATEGORIES\n";
+                        cout << "[2] CUSTOM SIZE RANGE\n";
+                        cout << "[3] GO BACK\n";
+                        cout << "YOUR CHOICE : ";
+                        cin >> user_responce;
+
+                        switch (user_responce)
+                        {
+                        case 1:
+                        {
+                            // total kitni file process hua
+                            totalEnteries = files.size();
+                            processedEnteries = 0;
+
+                            for (const auto &item : files)
+                            {
+                                string category = getsizecategory(sizeDivider, item);
+                                fs::path source_path = fs::path(path) / item.getrelativePath() / (item.getfilename() + item.getextension());
+                                fs::path destination_folder = fs::path(path) / category;
+                                bool move = moveFILE(source_path, destination_folder);
+                                if (!move)
+                                {
+                                    allMoveSuccessFull = false;
+                                }
+
+                                processedEnteries++;
+                                double percentage = (double(processedEnteries) / totalEnteries) * 100;
+                                cout << "\r";
+                                StaticBar(percentage, Max_bar_length);
+                                cout.flush();
+                            }
+                            if (allMoveSuccessFull)
+                            {
+                                cout << "\033[32m" << "\nORGANIZATION COMPLETED SUCCESSFULLY\n"
+                                     << "\033[0m";
+                            }
+                            else
+                            {
+                                cout << "\033[31m" << "\nORGANIZATION COMPLETED WITH ERRORS\n"
+                                     << "\033[0m";
+                            }
+                            break;
+                        }
+                        case 2:
+                        {
+                            long long minSize;
+                            long long maxSize;
+                            char user_responce_char;
+                            string folderName_input;
+                            sizeRules.clear();
+                            allMoveSuccessFull = true;
+                            processedEnteries = 0;
+                            totalEnteries = 0;
+
+                            do
+                            {
+                                cout << "ENTER MINIMUM SIZE :";
+                                cin >> minSize;
+                                if (cin.fail())
+                                {
+                                    cout << "\033[31m";
+                                    cout << "INVALID SIZE \n";
+                                    cout << "\033[0m";
+                                    // error state reset
+                                    cin.clear();
+                                    // buffer cleaning
+                                    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                                    continue;
+                                }
+                                minSize = convertTobytes(minSize, "mb");
+                                cout << "ENTER MAXIMUM SIZE :";
+                                cin >> maxSize;
+                                if (cin.fail())
+                                {
+                                    cout << "\033[31m";
+                                    cout << "INVALID SIZE \n";
+                                    cout << "\033[0m";
+                                    // error state reset
+                                    cin.clear();
+                                    // buffer cleaning
+                                    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                                    continue;
+                                }
+                                maxSize = convertTobytes(maxSize, "mb");
+
+                                if (minSize < 0 || maxSize <= 0 || minSize > maxSize)
+                                {
+                                    cout << "\033[31m" << "INVALID SIZE RANGE\n"
+                                         << "\033[0m";
+                                    continue;
+                                }
+
+                                bool overlap = false;
+
+                                for (const auto &existingRule : sizeRules)
+                                {
+                                    if (minSize <= existingRule.maxSize &&
+                                        existingRule.minSize <= maxSize)
+                                    {
+                                        overlap = true;
+                                        break;
+                                    }
+                                }
+
+                                if (overlap)
+                                {
+                                    cout << "\033[31m"
+                                         << "SIZE RANGE OVERLAPS WITH AN EXISTING RULE\n"
+                                         << "\033[0m";
+                                    continue;
+                                }
+
+                                cout << "ENTER FOLDER NAME :";
+                                cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                                getline(cin, folderName_input);
+                                if (folderName_input.empty())
+                                {
+                                    cout << "\033[31m" << "YOU HAVE NOT ENTERED THE FOLDER NAME\n"
+                                         << "\033[0m";
+                                    continue;
+                                }
+
+                                sizeRule rule;
+                                rule.minSize = minSize;
+                                rule.maxSize = maxSize;
+                                rule.folderName_input = folderName_input;
+                                sizeRules.push_back(rule);
+
+                                cout << "Add another rule? (Y/N) : ";
+                                cin >> user_responce_char;
+                            } while (!(user_responce_char == 'N' || user_responce_char == 'n'));
+
+                            totalEnteries = sizeRules.size() * files.size();
+                            for (const auto &rule : sizeRules)
+                            {
+
+                                for (const auto &item : files)
+                                {
+
+                                    long long fileSize = item.getsize();
+                                    if (fileSize >= rule.minSize && fileSize <= rule.maxSize)
+                                    {
+                                        fs::path source_path = fs::path(path) / item.getrelativePath() / (item.getfilename() + item.getextension());
+                                        fs::path destination_folder = fs::path(path) / rule.folderName_input;
+                                        bool move = moveFILE(source_path, destination_folder);
+                                        if (!move)
+                                        {
+                                            allMoveSuccessFull = false;
+                                        }
+                                    }
+                                    processedEnteries++;
+                                    double percentage = (double(processedEnteries) / totalEnteries) * 100;
+                                    cout << "\r";
+                                    StaticBar(percentage, Max_bar_length);
+                                    cout.flush();
+                                }
+                            }
+                            if (allMoveSuccessFull)
+                            {
+                                cout << "\033[32m" << "\nORGANIZATION COMPLETED SUCCESSFULLY\n"
+                                     << "\033[0m";
+                            }
+                            else
+                            {
+                                cout << "\033[31m" << "\nORGANIZATION COMPLETED WITH ERRORS\n"
+                                     << "\033[0m";
+                            }
+                            break;
+                        }
+                        case 3:
+                        {
+                            cout << "\033[32m" << "GOING BACK\n"
+                                 << "\033[0m";
+                            break;
+                        }
+                        default:
+                        {
+                            if (cin.fail())
+                            {
+                                cout << "\033[31m";
+                                cout << "INVALID OPTION \n";
+                                cout << "\033[0m";
+                                // error state reset
+                                cin.clear();
+                                // buffer cleaning
+                                cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                            }
+                            else
+                            {
+                                cout << "\033[31m";
+                                cout << "INVALID OPTION \n";
+                                cout << "\033[0m";
+                            }
+                        }
+                        }
+
+                    } while (user_responce != 3);
                     break;
                 }
                 case 4:
