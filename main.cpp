@@ -589,6 +589,64 @@ struct sizeRule
     long long maxSize;
     string folderName_input;
 };
+
+void processOrganization(const vector<pair<FileInfo, string>> &filesToMove, const string parentpath, const int Max_bar_length, int &successfulmove, int &failedmove)
+{
+    int totalEnteries = filesToMove.size();
+    int processedEnteries = 0;
+    successfulmove = 0;
+    failedmove = 0;
+
+    if (filesToMove.empty())
+    {
+        cout << "\033[31m";
+        cout << "NO FILES TO ORGANIZE\n";
+        cout << "\033[0m";
+        return;
+    }
+    for (const auto &filefolderpair : filesToMove)
+    {
+        const FileInfo &file = filefolderpair.first;
+        const string &foldername = filefolderpair.second;
+
+        fs::path source_path = fs::path(parentpath) / file.getrelativePath() / (file.getfilename() + file.getextension());
+
+        fs::path destination_path = fs::path(parentpath) / foldername;
+
+        bool move = moveFILE(source_path, destination_path);
+
+        if (move)
+        {
+            successfulmove++;
+        }
+        else
+        {
+            failedmove++;
+        }
+        processedEnteries++;
+        double percentage = ((double(processedEnteries) / totalEnteries)*100);
+        cout<<"\r";
+        StaticBar(percentage, Max_bar_length);
+        cout.flush();
+    }
+    cout << "\n";
+    if (failedmove == 0)
+    {
+        cout << "\033[32m";
+        cout << "ORGANIZATION COMPLETED SUCCESSFULLY\n";
+        cout << "\033[0m";
+    }
+    else
+    {
+        cout << "\033[31m";
+        cout << "ORGANIZATION COMPLETED WITH ERRORS\n";
+        cout << "\033[0m";
+    }
+
+    cout << "SUCCESSFUL MOVES : " << successfulmove << "\n";
+    cout << "FAILED MOVES     : " << failedmove << "\n";
+}
+
 int main()
 {
     // startup
@@ -2257,6 +2315,8 @@ int main()
                     cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
                     continue;
                 }
+                int successfulmoves = 0;
+                int failedmoves = 0;
                 //! case 1 ka variable
                 set<string> availablecategories;
                 //! case 2 ka variable
@@ -2265,14 +2325,19 @@ int main()
                 vector<pair<FileInfo, string>> organizedFiles;
                 vector<FileInfo> alreadyOrganized;
                 //! case 3 ka variable
+                long long minSize;
+                long long maxSize;
+                char user_responce_char;
+              //  // string folderName_input;  CASE 2 MAI ALREADY DEFINED HAI
                 vector<sizeRule> sizeRules;
                 switch (user_choice_fileSeperation_menu)
                 {
                 case 1:
                 {
-                    // total kitni file process hua
-                    totalEnteries = files.size();
-                    processedEnteries = 0;
+                    availablecategories.clear();
+                    organizedFiles.clear();
+                    successfulmoves = 0;
+                    failedmoves = 0;
 
                     cout << "\033[33m" << "\nCATEGORY ORGANIZATION\n"
                          << "\033[0m";
@@ -2298,47 +2363,21 @@ int main()
                     cout << "\nDo you want to continue?(Y/N) :";
                     char user_responce;
                     cin >> user_responce;
-                    processedEnteries = 0;
+
                     if (user_responce == 'y' || user_responce == 'Y')
                     {
-                        allMoveSuccessFull = true;
                         for (const auto &file : files)
                         {
                             auto extension = file.getextension();
                             auto it = category.find(extension);
 
-                            fs::path source_path = fs::path(path) / file.getrelativePath() / (file.getfilename() + file.getextension());
                             // sirf wahi category collect kar raha h jinke files actually available hai
                             if (it != category.end())
                             {
-                                fs::path destination_folder = fs::path(path) / it->second;
-                                bool move = moveFILE(source_path, destination_folder);
-                                if (!move)
-                                {
-                                    allMoveSuccessFull = false;
-                                }
+                                organizedFiles.push_back({file, it->second});
                             }
-                            else
-                            {
-                                // unknown category
-                            }
-                            processedEnteries++;
-                            double percentage = (double(processedEnteries) / totalEnteries) * 100;
-                            cout << "\r";
-                            StaticBar(percentage, Max_bar_length);
-                            cout.flush();
                         }
-
-                        if (allMoveSuccessFull)
-                        {
-                            cout << "\033[32m" << "\nORGANIZATION COMPLETED SUCCESSFULLY\n"
-                                 << "\033[0m";
-                        }
-                        else
-                        {
-                            cout << "\033[31m" << "\nORGANIZATION COMPLETED WITH ERRORS\n"
-                                 << "\033[0m";
-                        }
+                        processOrganization(organizedFiles, path, Max_bar_length, successfulmoves, failedmoves);
                     }
                     else if (user_responce == 'n' || user_responce == 'N')
                     {
@@ -2351,7 +2390,7 @@ int main()
                         cout << "INVALID OPTION OPT\n";
                         cout << "\033[0m";
                     }
-                    allMoveSuccessFull = false;
+
                     break;
                 }
                 case 2:
@@ -2359,9 +2398,8 @@ int main()
                     nameRules.clear();
                     organizedFiles.clear();
                     alreadyOrganized.clear();
-                    processedEnteries = 0;
-                    totalEnteries = 0;
-                    allMoveSuccessFull = true;
+                    successfulmoves = 0;
+                    failedmoves = 0;
 
                     //*NAME BASED ORGANIZATION
                     cout << "\033[33m" << "\nNAME-BASED ORGANIZATION\n"
@@ -2374,6 +2412,8 @@ int main()
                         cout << "Enter keyword to organize files : ";
                         cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
                         getline(cin, keyword_input);
+                        keyword_input = trim(keyword_input);
+
                         if (keyword_input.empty())
                         {
                             cout << "\033[31m";
@@ -2381,10 +2421,11 @@ int main()
                             cout << "\033[0m";
                             continue;
                         }
-                        keyword_input = trim(keyword_input);
 
                         cout << "Enter folder name : ";
                         getline(cin, folderName_input);
+                        folderName_input = trim(folderName_input);
+
                         if (folderName_input.empty())
                         {
                             cout << "\033[31m";
@@ -2392,7 +2433,7 @@ int main()
                             cout << "\033[0m";
                             continue;
                         }
-                        folderName_input = trim(folderName_input);
+
                         nameRules.push_back({keyword_input, folderName_input});
                         cout << "Add another rule? (Y/N) : ";
                         cin >> user_responce;
@@ -2435,41 +2476,15 @@ int main()
                     }
 
                     // moving files accourding to the organizedFiles vector
-                    totalEnteries = organizedFiles.size();
-                    for (const auto &fileFolderPair : organizedFiles)
-                    {
-                        const FileInfo &file = fileFolderPair.first;
-                        const string &folderName = fileFolderPair.second;
-                        fs::path source_path = fs::path(path) / file.getrelativePath() / (file.getfilename() + file.getextension());
-                        fs::path destination_folder = fs::path(path) / folderName;
+                    processOrganization(organizedFiles, path, Max_bar_length, successfulmoves, failedmoves);
 
-                        // bar
-                        processedEnteries++;
-                        double percentage = (double(processedEnteries) / totalEnteries) * 100;
-                        cout << "\r";
-                        StaticBar(percentage, Max_bar_length);
-                        cout.flush();
-                        bool move = moveFILE(source_path, destination_folder);
-                        if (!move)
-                        {
-                            allMoveSuccessFull = false;
-                        }
-                    }
-
-                    if (allMoveSuccessFull)
-                    {
-                        cout << "\033[32m" << "\nORGANIZATION COMPLETED SUCCESSFULLY\n"
-                             << "\033[0m";
-                    }
-                    else
-                    {
-                        cout << "\033[31m" << "\nORGANIZATION COMPLETED WITH ERRORS\n"
-                             << "\033[0m";
-                    }
                     break;
                 }
                 case 3:
                 {
+                    organizedFiles.clear();
+                    successfulmoves = 0;
+                    failedmoves = 0;
                     //*SIZE BASED ORGANIZATION
                     cout << "\033[33m" << "\nSIZE-BASED ORGANIZATION\n"
                          << "\033[0m";
@@ -2486,50 +2501,31 @@ int main()
                         {
                         case 1:
                         {
-                            // total kitni file process hua
-                            totalEnteries = files.size();
-                            processedEnteries = 0;
 
+                            organizedFiles.clear();
+                            successfulmoves = 0;
+                            failedmoves = 0;
+
+                            // Files ko category ke according prepare karo
                             for (const auto &item : files)
                             {
                                 string category = getsizecategory(sizeDivider, item);
-                                fs::path source_path = fs::path(path) / item.getrelativePath() / (item.getfilename() + item.getextension());
-                                fs::path destination_folder = fs::path(path) / category;
-                                bool move = moveFILE(source_path, destination_folder);
-                                if (!move)
-                                {
-                                    allMoveSuccessFull = false;
-                                }
 
-                                processedEnteries++;
-                                double percentage = (double(processedEnteries) / totalEnteries) * 100;
-                                cout << "\r";
-                                StaticBar(percentage, Max_bar_length);
-                                cout.flush();
+                                organizedFiles.push_back({item, category});
                             }
-                            if (allMoveSuccessFull)
-                            {
-                                cout << "\033[32m" << "\nORGANIZATION COMPLETED SUCCESSFULLY\n"
-                                     << "\033[0m";
-                            }
-                            else
-                            {
-                                cout << "\033[31m" << "\nORGANIZATION COMPLETED WITH ERRORS\n"
-                                     << "\033[0m";
-                            }
+
+                            // Actual movement + progress + result
+                            processOrganization(organizedFiles, path, Max_bar_length, successfulmoves, failedmoves);
+
                             break;
                         }
                         case 2:
                         {
-                            long long minSize;
-                            long long maxSize;
-                            char user_responce_char;
-                            string folderName_input;
-                            sizeRules.clear();
-                            allMoveSuccessFull = true;
-                            processedEnteries = 0;
-                            totalEnteries = 0;
 
+                            sizeRules.clear();
+                            organizedFiles.clear();
+                            successfulmoves = 0;
+                            failedmoves = 0;
                             do
                             {
                                 cout << "ENTER MINIMUM SIZE :";
@@ -2608,41 +2604,19 @@ int main()
                                 cin >> user_responce_char;
                             } while (!(user_responce_char == 'N' || user_responce_char == 'n'));
 
-                            totalEnteries = sizeRules.size() * files.size();
+                            // matching files collect karo
                             for (const auto &rule : sizeRules)
                             {
-
                                 for (const auto &item : files)
                                 {
-
                                     long long fileSize = item.getsize();
                                     if (fileSize >= rule.minSize && fileSize <= rule.maxSize)
                                     {
-                                        fs::path source_path = fs::path(path) / item.getrelativePath() / (item.getfilename() + item.getextension());
-                                        fs::path destination_folder = fs::path(path) / rule.folderName_input;
-                                        bool move = moveFILE(source_path, destination_folder);
-                                        if (!move)
-                                        {
-                                            allMoveSuccessFull = false;
-                                        }
+                                        organizedFiles.push_back({item, rule.folderName_input});
                                     }
-                                    processedEnteries++;
-                                    double percentage = (double(processedEnteries) / totalEnteries) * 100;
-                                    cout << "\r";
-                                    StaticBar(percentage, Max_bar_length);
-                                    cout.flush();
                                 }
                             }
-                            if (allMoveSuccessFull)
-                            {
-                                cout << "\033[32m" << "\nORGANIZATION COMPLETED SUCCESSFULLY\n"
-                                     << "\033[0m";
-                            }
-                            else
-                            {
-                                cout << "\033[31m" << "\nORGANIZATION COMPLETED WITH ERRORS\n"
-                                     << "\033[0m";
-                            }
+                            processOrganization(organizedFiles, path, Max_bar_length, successfulmoves, failedmoves);
                             break;
                         }
                         case 3:
@@ -2671,7 +2645,6 @@ int main()
                             }
                         }
                         }
-
                     } while (user_responce != 3);
                     break;
                 }
@@ -2767,7 +2740,7 @@ int main()
                 cout << "\n";
             }
             cout << "\nSELECT THE FILE :";
-            int selectedfile;
+            size_t selectedfile;
             cin >> selectedfile;
             if (cin.fail())
             {
