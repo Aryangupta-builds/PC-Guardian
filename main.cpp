@@ -560,6 +560,19 @@ bool moveFILE(const fs::path source, const fs::path destinationFOLDER)
     // basically yaha pe destinationFOLDER mai source.filename() add hua hai
     // path ko add karne ke liye / use karte hai
     fs::path destinationFILE = destinationFOLDER / source.filename();
+
+    if (fs::exists(destinationFILE))
+    {
+        string filename = source.stem().string();
+        string extension = source.extension().string();
+
+        int count = 1;
+        while (fs::exists(destinationFILE))
+        {
+            destinationFILE = destinationFOLDER / (filename + "_" + to_string(count) + extension);
+            count++;
+        }
+    }
     error_code ec;
     fs::rename(source, destinationFILE, ec);
 
@@ -624,8 +637,8 @@ void processOrganization(const vector<pair<FileInfo, string>> &filesToMove, cons
             failedmove++;
         }
         processedEnteries++;
-        double percentage = ((double(processedEnteries) / totalEnteries)*100);
-        cout<<"\r";
+        double percentage = ((double(processedEnteries) / totalEnteries) * 100);
+        cout << "\r";
         StaticBar(percentage, Max_bar_length);
         cout.flush();
     }
@@ -2300,7 +2313,7 @@ int main()
                 cout << "[1] CATEGORY BASED\n";
                 cout << "[2] NAME BASED\n";
                 cout << "[3] SIZE BASED\n";
-                cout << "[4] UNDO CHANGES\n";
+                cout <<"\033[31m"<< "[4] UNDO CHANGES\n"<<"\033[0m";
                 cout << "[5] BACK\n";
                 cout << "YOUR CHOICE : ";
                 cin >> user_choice_fileSeperation_menu;
@@ -2324,12 +2337,14 @@ int main()
                 string folderName_input;
                 vector<pair<FileInfo, string>> organizedFiles;
                 vector<FileInfo> alreadyOrganized;
+                vector<FileInfo> unmatchedfiles;
                 //! case 3 ka variable
                 long long minSize;
                 long long maxSize;
                 char user_responce_char;
-              //  // string folderName_input;  CASE 2 MAI ALREADY DEFINED HAI
+                //  // string folderName_input;  CASE 2 MAI ALREADY DEFINED HAI
                 vector<sizeRule> sizeRules;
+                vector<FileInfo> UnmatchedSizeRules;
                 switch (user_choice_fileSeperation_menu)
                 {
                 case 1:
@@ -2345,11 +2360,8 @@ int main()
                     for (const auto &file : files)
                     {
                         auto extension = file.getextension();
-                        auto it = category.find(extension);
-                        if (it != category.end())
-                        {
-                            availablecategories.insert(it->second);
-                        }
+                        auto categoryNAME = getcategory(extension, category);
+                        availablecategories.insert(categoryNAME);
                     }
                     cout << "The following categories will be created:\n\n";
                     int i = 1;
@@ -2369,13 +2381,8 @@ int main()
                         for (const auto &file : files)
                         {
                             auto extension = file.getextension();
-                            auto it = category.find(extension);
-
-                            // sirf wahi category collect kar raha h jinke files actually available hai
-                            if (it != category.end())
-                            {
-                                organizedFiles.push_back({file, it->second});
-                            }
+                            auto categoryNAME = getcategory(extension, category);
+                            organizedFiles.push_back({file, categoryNAME});
                         }
                         processOrganization(organizedFiles, path, Max_bar_length, successfulmoves, failedmoves);
                     }
@@ -2397,6 +2404,7 @@ int main()
                 {
                     nameRules.clear();
                     organizedFiles.clear();
+                    unmatchedfiles.clear();
                     alreadyOrganized.clear();
                     successfulmoves = 0;
                     failedmoves = 0;
@@ -2474,6 +2482,33 @@ int main()
                             }
                         }
                     }
+                    // finding unmatched files
+                    for (const auto &item : files)
+                    {
+
+                        // checking if the file is already found or not
+                        bool alreadyfound = false;
+                        for (const auto &organized : alreadyOrganized)
+                        {
+                            if (organized.getfilename() == item.getfilename() &&
+                                organized.getextension() == item.getextension() &&
+                                organized.getrelativePath() == item.getrelativePath())
+                            {
+                                alreadyfound = true;
+                                break;
+                            }
+                        }
+
+                        if (!alreadyfound)
+                        {
+                            unmatchedfiles.push_back(item);
+                        }
+                    }
+                    // adding unmatched files to the "Other" folder
+                    for (const auto &item : unmatchedfiles)
+                    {
+                        organizedFiles.push_back({item, "Other"});
+                    }
 
                     // moving files accourding to the organizedFiles vector
                     processOrganization(organizedFiles, path, Max_bar_length, successfulmoves, failedmoves);
@@ -2523,6 +2558,7 @@ int main()
                         {
 
                             sizeRules.clear();
+                            unmatchedfiles.clear();
                             organizedFiles.clear();
                             successfulmoves = 0;
                             failedmoves = 0;
@@ -2616,185 +2652,221 @@ int main()
                                     }
                                 }
                             }
+
+                            // finding unmatched files
+                            // finding unmatched files
+                            for (const auto &item : files)
+                            {
+
+                                // checking if the file is already found or not
+                                bool alreadyfound = false;
+                                for (const auto &organized : organizedFiles)
+                                {
+                                    if (organized.first.getfilename() == item.getfilename() &&
+                                        organized.first.getextension() == item.getextension() &&
+                                        organized.first.getrelativePath() == item.getrelativePath())
+                                    {
+                                        alreadyfound = true;
+                                        break;
+                                    }
+                                }
+
+                                if (!alreadyfound)
+                                {
+                                    unmatchedfiles.push_back(item);
+                                }
+                            }
+                        
+                            for (const auto &item : unmatchedfiles)
+                            {
+                                organizedFiles.push_back({item, "Other"});
+                            }
+
                             processOrganization(organizedFiles, path, Max_bar_length, successfulmoves, failedmoves);
                             break;
                         }
-                        case 3:
+                    case 3:
+                    {
+                        cout << "\033[32m" << "GOING BACK\n"
+                             << "\033[0m";
+                        break;
+                    }
+                    default:
+                    {
+                        if (cin.fail())
                         {
-                            cout << "\033[32m" << "GOING BACK\n"
-                                 << "\033[0m";
-                            break;
+                            cout << "\033[31m";
+                            cout << "INVALID OPTION \n";
+                            cout << "\033[0m";
+                            // error state reset
+                            cin.clear();
+                            // buffer cleaning
+                            cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
                         }
-                        default:
+                        else
                         {
-                            if (cin.fail())
-                            {
-                                cout << "\033[31m";
-                                cout << "INVALID OPTION \n";
-                                cout << "\033[0m";
-                                // error state reset
-                                cin.clear();
-                                // buffer cleaning
-                                cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-                            }
-                            else
-                            {
-                                cout << "\033[31m";
-                                cout << "INVALID OPTION \n";
-                                cout << "\033[0m";
-                            }
+                            cout << "\033[31m";
+                            cout << "INVALID OPTION \n";
+                            cout << "\033[0m";
                         }
-                        }
-                    } while (user_responce != 3);
+                    }
+                    }
+                }
+                    while (user_responce != 3)
+                        ;
                     break;
                 }
-                case 4:
+            case 4:
+            {
+                cout << "\033[31m";
+                cout << "\nUNDER DEVELOPMENT\n\n";
+                cout << "\033[0m";
+                break;
+            }
+            case 5:
+            {
+                cout << "\033[32m";
+                cout << "GOING BACK...\n";
+                cout << "\033[0m";
+                break;
+            }
+            default:
+            {
+                if (cin.fail())
                 {
                     cout << "\033[31m";
-                    cout << "UNDER DEVELOPMENT\n";
+                    cout << "INVALID OPTION \n";
                     cout << "\033[0m";
-                    break;
+                    // error state reset
+                    cin.clear();
+                    // buffer cleaning
+                    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
                 }
-                case 5:
+                else
                 {
-                    cout << "\033[32m";
-                    cout << "GOING BACK...\n";
+                    cout << "\033[31m";
+                    cout << "INVALID OPTION \n";
                     cout << "\033[0m";
-                    break;
                 }
-                default:
-                {
-                    if (cin.fail())
-                    {
-                        cout << "\033[31m";
-                        cout << "INVALID OPTION \n";
-                        cout << "\033[0m";
-                        // error state reset
-                        cin.clear();
-                        // buffer cleaning
-                        cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-                    }
-                    else
-                    {
-                        cout << "\033[31m";
-                        cout << "INVALID OPTION \n";
-                        cout << "\033[0m";
-                    }
-                }
-                }
-            } while (user_choice_fileSeperation_menu != 5);
+            }
+            }
+        }
+            while (user_choice_fileSeperation_menu != 5)
+                ;
 
             break;
         }
-        case 5:
+    case 5:
+    {
+        // ###############################
+        //* FILE REPORT MENU
+        // ###############################
+        cout << "--------------------------------\n";
+        cout << "          " << "\033[33m" << "FILE REPORT\n"
+             << "\033[0m";
+        cout << "--------------------------------\n";
+
+        cout << "Enter file name to search : ";
+        string searchedfile;
+        string copy_searchedfile;
+        cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        getline(cin, searchedfile);
+
+        copy_searchedfile = searchedfile;
+
+        searchedfile = trim(searchedfile);
+        if (searchedfile.empty())
         {
-            // ###############################
-            //* FILE REPORT MENU
-            // ###############################
-            cout << "--------------------------------\n";
-            cout << "          " << "\033[33m" << "FILE REPORT\n"
-                 << "\033[0m";
-            cout << "--------------------------------\n";
-
-            cout << "Enter file name to search : ";
-            string searchedfile;
-            string copy_searchedfile;
-            cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-            getline(cin, searchedfile);
-
-            copy_searchedfile = searchedfile;
-
-            searchedfile = trim(searchedfile);
-            if (searchedfile.empty())
-            {
-                cout << "\033[31m";
-                cout << "YOU HAVE NOT ENTERED THE FILENAME\n";
-                cout << "\033[0m";
-                break;
-            }
-
-            string FullFileName;
-            searchedfile = tolowerCASE(searchedfile);
-            for (const auto &item : files)
-            {
-                FullFileName = tolowerCASE(item.getfilename() + item.getextension());
-
-                if (FullFileName.find(searchedfile) != string::npos)
-                {
-                    fileSearched.push_back(item);
-                }
-            }
-            if (fileSearched.empty())
-            {
-                cout << "\033[31m" << "NO FILE FOUND FOR :" << copy_searchedfile << "\033[0m" << endl;
-                break;
-            }
-            cout << "\033[33m" << "\nMATCHING FILE\n"
-                 << "\033[0m";
-            cout << "--------------------------------\n";
-            for (size_t i = 0; i < fileSearched.size(); i++)
-            {
-                cout << "[" << i + 1 << "]";
-                cout << fileSearched[i].getfilename();
-                cout << fileSearched[i].getextension();
-                cout << "\n";
-            }
-            cout << "\nSELECT THE FILE :";
-            size_t selectedfile;
-            cin >> selectedfile;
-            if (cin.fail())
-            {
-                cout << "\033[31m";
-                cout << "INVALID OPTION \n";
-                cout << "\033[0m";
-                // error state reset
-                cin.clear();
-                // buffer cleaning
-                cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-                fileSearched.clear();
-                break;
-            }
-            if (selectedfile < 1 || selectedfile > fileSearched.size())
-            {
-                cout << "\033[31m";
-                cout << "INVALID FILE NUMBER\n";
-                cout << "\033[0m";
-                fileSearched.clear();
-                break;
-            }
-
-            reportFile(fileSearched[selectedfile - 1], category);
-            fileSearched.clear();
-            break;
-        }
-        case 6:
-        {
-            cout << "\033[32m";
-            cout << "EXITING......\n";
+            cout << "\033[31m";
+            cout << "YOU HAVE NOT ENTERED THE FILENAME\n";
             cout << "\033[0m";
             break;
         }
-        default:
+
+        string FullFileName;
+        searchedfile = tolowerCASE(searchedfile);
+        for (const auto &item : files)
         {
-            if (cin.fail())
+            FullFileName = tolowerCASE(item.getfilename() + item.getextension());
+
+            if (FullFileName.find(searchedfile) != string::npos)
             {
-                cout << "\033[31m";
-                cout << "INVALID OPTION \n";
-                cout << "\033[0m";
-                // error state reset
-                cin.clear();
-                // buffer cleaning
-                cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                fileSearched.push_back(item);
             }
-            else
-            {
-                cout << "\033[31m";
-                cout << "INVALID OPTION \n";
-                cout << "\033[0m";
-            }
+        }
+        if (fileSearched.empty())
+        {
+            cout << "\033[31m" << "NO FILE FOUND FOR :" << copy_searchedfile << "\033[0m" << endl;
             break;
         }
+        cout << "\033[33m" << "\nMATCHING FILE\n"
+             << "\033[0m";
+        cout << "--------------------------------\n";
+        for (size_t i = 0; i < fileSearched.size(); i++)
+        {
+            cout << "[" << i + 1 << "]";
+            cout << fileSearched[i].getfilename();
+            cout << fileSearched[i].getextension();
+            cout << "\n";
         }
-    } while (user_choice_main_menu != 6);
-    return SUCCESS;
+        cout << "\nSELECT THE FILE :";
+        size_t selectedfile;
+        cin >> selectedfile;
+        if (cin.fail())
+        {
+            cout << "\033[31m";
+            cout << "INVALID OPTION \n";
+            cout << "\033[0m";
+            // error state reset
+            cin.clear();
+            // buffer cleaning
+            cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            fileSearched.clear();
+            break;
+        }
+        if (selectedfile < 1 || selectedfile > fileSearched.size())
+        {
+            cout << "\033[31m";
+            cout << "INVALID FILE NUMBER\n";
+            cout << "\033[0m";
+            fileSearched.clear();
+            break;
+        }
+
+        reportFile(fileSearched[selectedfile - 1], category);
+        fileSearched.clear();
+        break;
+    }
+    case 6:
+    {
+        cout << "\033[32m";
+        cout << "EXITING......\n";
+        cout << "\033[0m";
+        break;
+    }
+    default:
+    {
+        if (cin.fail())
+        {
+            cout << "\033[31m";
+            cout << "INVALID OPTION \n";
+            cout << "\033[0m";
+            // error state reset
+            cin.clear();
+            // buffer cleaning
+            cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        }
+        else
+        {
+            cout << "\033[31m";
+            cout << "INVALID OPTION \n";
+            cout << "\033[0m";
+        }
+        break;
+    }
+    }
+}
+while (user_choice_main_menu != 6)
+    ;
+return SUCCESS;
 }
