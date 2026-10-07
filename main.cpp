@@ -660,6 +660,28 @@ void processOrganization(const vector<pair<FileInfo, string>> &filesToMove, cons
     cout << "FAILED MOVES     : " << failedmove << "\n";
 }
 
+void showOrganizationPreview(const vector<pair<FileInfo, string>> &OrganizedFiles)
+{
+
+    cout << "--------------------------------\n";
+    cout << "\033[33m" << "ORGANIZATION PREVIEW\n"
+         << "\033[0m";
+    cout << "--------------------------------\n";
+
+    map<string, int> categoryCOUNT;
+
+    for (const auto &pair : OrganizedFiles)
+    {
+        categoryCOUNT[pair.second]++;
+    }
+    for (const auto &item : categoryCOUNT)
+    {
+        cout << item.first << " : " << item.second << "\n";
+    }
+
+    cout << "\nTOTAL FILES TO ORGANIZE : " << OrganizedFiles.size() << "\n\n";
+}
+
 int main()
 {
     // startup
@@ -2313,7 +2335,8 @@ int main()
                 cout << "[1] CATEGORY BASED\n";
                 cout << "[2] NAME BASED\n";
                 cout << "[3] SIZE BASED\n";
-                cout <<"\033[31m"<< "[4] UNDO CHANGES\n"<<"\033[0m";
+                cout << "\033[31m" << "[4] UNDO CHANGES\n"
+                     << "\033[0m";
                 cout << "[5] BACK\n";
                 cout << "YOUR CHOICE : ";
                 cin >> user_choice_fileSeperation_menu;
@@ -2344,7 +2367,6 @@ int main()
                 char user_responce_char;
                 //  // string folderName_input;  CASE 2 MAI ALREADY DEFINED HAI
                 vector<sizeRule> sizeRules;
-                vector<FileInfo> UnmatchedSizeRules;
                 switch (user_choice_fileSeperation_menu)
                 {
                 case 1:
@@ -2384,7 +2406,29 @@ int main()
                             auto categoryNAME = getcategory(extension, category);
                             organizedFiles.push_back({file, categoryNAME});
                         }
-                        processOrganization(organizedFiles, path, Max_bar_length, successfulmoves, failedmoves);
+                        showOrganizationPreview(organizedFiles);
+
+                        // confirmation
+                        cout << "\nDo you want to continue?(Y/N) :";
+                        char user_responce_after_preview;
+                        cin >> user_responce_after_preview;
+
+                        if (user_responce_after_preview == 'Y' || user_responce_after_preview == 'y')
+                        {
+                            processOrganization(organizedFiles, path, Max_bar_length, successfulmoves, failedmoves);
+                        }
+                        else if (user_responce_after_preview == 'N' || user_responce_after_preview == 'n')
+                        {
+                            cout << "\033[32m" << "OPERATION CANCELED SUCCESSFULLY\n"
+                                 << "\033[0m";
+                        }
+                        else
+                        {
+                            cout << "\033[31m";
+                            cout << "INVALID OPTION OPT\n";
+                            cout << "\033[0m";
+                            cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                        }
                     }
                     else if (user_responce == 'n' || user_responce == 'N')
                     {
@@ -2396,6 +2440,7 @@ int main()
                         cout << "\033[31m";
                         cout << "INVALID OPTION OPT\n";
                         cout << "\033[0m";
+                        cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
                     }
 
                     break;
@@ -2418,7 +2463,7 @@ int main()
                     do
                     {
                         cout << "Enter keyword to organize files : ";
-                        cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                      
                         getline(cin, keyword_input);
                         keyword_input = trim(keyword_input);
 
@@ -2445,6 +2490,11 @@ int main()
                         nameRules.push_back({keyword_input, folderName_input});
                         cout << "Add another rule? (Y/N) : ";
                         cin >> user_responce;
+                        if(user_responce == 'N' || user_responce == 'n'){
+                            break;
+                        }
+                          cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+
                     } while (!(user_responce == 'N' || user_responce == 'n'));
 
                     // *NAME RULEs
@@ -2511,7 +2561,29 @@ int main()
                     }
 
                     // moving files accourding to the organizedFiles vector
-                    processOrganization(organizedFiles, path, Max_bar_length, successfulmoves, failedmoves);
+                    showOrganizationPreview(organizedFiles);
+
+                    // confirmation
+                    cout << "\nDo you want to continue?(Y/N) :";
+                    char user_responce_after_preview;
+                    cin >> user_responce_after_preview;
+
+                    if (user_responce_after_preview == 'Y' || user_responce_after_preview == 'y')
+                    {
+                        processOrganization(organizedFiles, path, Max_bar_length, successfulmoves, failedmoves);
+                    }
+                    else if (user_responce_after_preview == 'N' || user_responce_after_preview == 'n')
+                    {
+                        cout << "\033[32m" << "OPERATION CANCELED SUCCESSFULLY\n"
+                             << "\033[0m";
+                    }
+                    else
+                    {
+                        cout << "\033[31m";
+                        cout << "INVALID OPTION OPT\n";
+                        cout << "\033[0m";
+                        cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                    }
 
                     break;
                 }
@@ -2550,7 +2622,29 @@ int main()
                             }
 
                             // Actual movement + progress + result
-                            processOrganization(organizedFiles, path, Max_bar_length, successfulmoves, failedmoves);
+                            showOrganizationPreview(organizedFiles);
+
+                            // confirmation
+                            cout << "\nDo you want to continue?(Y/N) :";
+                            char user_responce_after_preview;
+                            cin >> user_responce_after_preview;
+
+                            if (user_responce_after_preview == 'Y' || user_responce_after_preview == 'y')
+                            {
+                                processOrganization(organizedFiles, path, Max_bar_length, successfulmoves, failedmoves);
+                            }
+                            else if (user_responce_after_preview == 'N' || user_responce_after_preview == 'n')
+                            {
+                                cout << "\033[32m" << "OPERATION CANCELED SUCCESSFULLY\n"
+                                     << "\033[0m";
+                            }
+                            else
+                            {
+                                cout << "\033[31m";
+                                cout << "INVALID OPTION OPT\n";
+                                cout << "\033[0m";
+                                cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                            }
 
                             break;
                         }
@@ -2654,7 +2748,6 @@ int main()
                             }
 
                             // finding unmatched files
-                            // finding unmatched files
                             for (const auto &item : files)
                             {
 
@@ -2676,197 +2769,213 @@ int main()
                                     unmatchedfiles.push_back(item);
                                 }
                             }
-                        
+
                             for (const auto &item : unmatchedfiles)
                             {
                                 organizedFiles.push_back({item, "Other"});
                             }
 
-                            processOrganization(organizedFiles, path, Max_bar_length, successfulmoves, failedmoves);
+                            showOrganizationPreview(organizedFiles);
+
+                            // confirmation
+                            cout << "\nDo you want to continue?(Y/N) :";
+                            char user_responce_after_preview;
+                            cin >> user_responce_after_preview;
+
+                            if (user_responce_after_preview == 'Y' || user_responce_after_preview == 'y')
+                            {
+                                processOrganization(organizedFiles, path, Max_bar_length, successfulmoves, failedmoves);
+                            }
+                            else if (user_responce_after_preview == 'N' || user_responce_after_preview == 'n')
+                            {
+                                cout << "\033[32m" << "OPERATION CANCELED SUCCESSFULLY\n"
+                                     << "\033[0m";
+                            }
+                            else
+                            {
+                                cout << "\033[31m";
+                                cout << "INVALID OPTION OPT\n";
+                                cout << "\033[0m";
+                                cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                            }
                             break;
                         }
-                    case 3:
-                    {
-                        cout << "\033[32m" << "GOING BACK\n"
-                             << "\033[0m";
-                        break;
-                    }
-                    default:
-                    {
-                        if (cin.fail())
+                        case 3:
                         {
-                            cout << "\033[31m";
-                            cout << "INVALID OPTION \n";
-                            cout << "\033[0m";
-                            // error state reset
-                            cin.clear();
-                            // buffer cleaning
-                            cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                            cout << "\033[32m" << "GOING BACK\n"
+                                 << "\033[0m";
+                            break;
                         }
-                        else
+                        default:
                         {
-                            cout << "\033[31m";
-                            cout << "INVALID OPTION \n";
-                            cout << "\033[0m";
+                            if (cin.fail())
+                            {
+                                cout << "\033[31m";
+                                cout << "INVALID OPTION \n";
+                                cout << "\033[0m";
+                                // error state reset
+                                cin.clear();
+                                // buffer cleaning
+                                cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                            }
+                            else
+                            {
+                                cout << "\033[31m";
+                                cout << "INVALID OPTION \n";
+                                cout << "\033[0m";
+                            }
                         }
-                    }
-                    }
-                }
-                    while (user_responce != 3)
-                        ;
+                        }
+                    } while (user_responce != 3);
                     break;
                 }
-            case 4:
+                case 4:
+                {
+                    cout << "\033[31m";
+                    cout << "\nUNDER DEVELOPMENT\n\n";
+                    cout << "\033[0m";
+                    break;
+                }
+                case 5:
+                {
+                    cout << "\033[32m";
+                    cout << "GOING BACK...\n";
+                    cout << "\033[0m";
+                    break;
+                }
+                default:
+                {
+                    if (cin.fail())
+                    {
+                        cout << "\033[31m";
+                        cout << "INVALID OPTION \n";
+                        cout << "\033[0m";
+                        // error state reset
+                        cin.clear();
+                        // buffer cleaning
+                        cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                    }
+                    else
+                    {
+                        cout << "\033[31m";
+                        cout << "INVALID OPTION \n";
+                        cout << "\033[0m";
+                    }
+                }
+                }
+            } while (user_choice_fileSeperation_menu != 5);
+
+            break;
+        }
+        case 5:
+        {
+            // ###############################
+            //* FILE REPORT MENU
+            // ###############################
+            cout << "--------------------------------\n";
+            cout << "          " << "\033[33m" << "FILE REPORT\n"
+                 << "\033[0m";
+            cout << "--------------------------------\n";
+
+            cout << "Enter file name to search : ";
+            string searchedfile;
+            string copy_searchedfile;
+            cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            getline(cin, searchedfile);
+
+            copy_searchedfile = searchedfile;
+
+            searchedfile = trim(searchedfile);
+            if (searchedfile.empty())
             {
                 cout << "\033[31m";
-                cout << "\nUNDER DEVELOPMENT\n\n";
+                cout << "YOU HAVE NOT ENTERED THE FILENAME\n";
                 cout << "\033[0m";
                 break;
             }
-            case 5:
+
+            string FullFileName;
+            searchedfile = tolowerCASE(searchedfile);
+            for (const auto &item : files)
             {
-                cout << "\033[32m";
-                cout << "GOING BACK...\n";
-                cout << "\033[0m";
+                FullFileName = tolowerCASE(item.getfilename() + item.getextension());
+
+                if (FullFileName.find(searchedfile) != string::npos)
+                {
+                    fileSearched.push_back(item);
+                }
+            }
+            if (fileSearched.empty())
+            {
+                cout << "\033[31m" << "NO FILE FOUND FOR :" << copy_searchedfile << "\033[0m" << endl;
                 break;
             }
-            default:
+            cout << "\033[33m" << "\nMATCHING FILE\n"
+                 << "\033[0m";
+            cout << "--------------------------------\n";
+            for (size_t i = 0; i < fileSearched.size(); i++)
             {
-                if (cin.fail())
-                {
-                    cout << "\033[31m";
-                    cout << "INVALID OPTION \n";
-                    cout << "\033[0m";
-                    // error state reset
-                    cin.clear();
-                    // buffer cleaning
-                    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-                }
-                else
-                {
-                    cout << "\033[31m";
-                    cout << "INVALID OPTION \n";
-                    cout << "\033[0m";
-                }
+                cout << "[" << i + 1 << "]";
+                cout << fileSearched[i].getfilename();
+                cout << fileSearched[i].getextension();
+                cout << "\n";
             }
-            }
-        }
-            while (user_choice_fileSeperation_menu != 5)
-                ;
-
-            break;
-        }
-    case 5:
-    {
-        // ###############################
-        //* FILE REPORT MENU
-        // ###############################
-        cout << "--------------------------------\n";
-        cout << "          " << "\033[33m" << "FILE REPORT\n"
-             << "\033[0m";
-        cout << "--------------------------------\n";
-
-        cout << "Enter file name to search : ";
-        string searchedfile;
-        string copy_searchedfile;
-        cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        getline(cin, searchedfile);
-
-        copy_searchedfile = searchedfile;
-
-        searchedfile = trim(searchedfile);
-        if (searchedfile.empty())
-        {
-            cout << "\033[31m";
-            cout << "YOU HAVE NOT ENTERED THE FILENAME\n";
-            cout << "\033[0m";
-            break;
-        }
-
-        string FullFileName;
-        searchedfile = tolowerCASE(searchedfile);
-        for (const auto &item : files)
-        {
-            FullFileName = tolowerCASE(item.getfilename() + item.getextension());
-
-            if (FullFileName.find(searchedfile) != string::npos)
+            cout << "\nSELECT THE FILE :";
+            size_t selectedfile;
+            cin >> selectedfile;
+            if (cin.fail())
             {
-                fileSearched.push_back(item);
+                cout << "\033[31m";
+                cout << "INVALID OPTION \n";
+                cout << "\033[0m";
+                // error state reset
+                cin.clear();
+                // buffer cleaning
+                cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                fileSearched.clear();
+                break;
             }
-        }
-        if (fileSearched.empty())
-        {
-            cout << "\033[31m" << "NO FILE FOUND FOR :" << copy_searchedfile << "\033[0m" << endl;
-            break;
-        }
-        cout << "\033[33m" << "\nMATCHING FILE\n"
-             << "\033[0m";
-        cout << "--------------------------------\n";
-        for (size_t i = 0; i < fileSearched.size(); i++)
-        {
-            cout << "[" << i + 1 << "]";
-            cout << fileSearched[i].getfilename();
-            cout << fileSearched[i].getextension();
-            cout << "\n";
-        }
-        cout << "\nSELECT THE FILE :";
-        size_t selectedfile;
-        cin >> selectedfile;
-        if (cin.fail())
-        {
-            cout << "\033[31m";
-            cout << "INVALID OPTION \n";
-            cout << "\033[0m";
-            // error state reset
-            cin.clear();
-            // buffer cleaning
-            cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            if (selectedfile < 1 || selectedfile > fileSearched.size())
+            {
+                cout << "\033[31m";
+                cout << "INVALID FILE NUMBER\n";
+                cout << "\033[0m";
+                fileSearched.clear();
+                break;
+            }
+
+            reportFile(fileSearched[selectedfile - 1], category);
             fileSearched.clear();
             break;
         }
-        if (selectedfile < 1 || selectedfile > fileSearched.size())
+        case 6:
         {
-            cout << "\033[31m";
-            cout << "INVALID FILE NUMBER\n";
+            cout << "\033[32m";
+            cout << "EXITING......\n";
             cout << "\033[0m";
-            fileSearched.clear();
             break;
         }
-
-        reportFile(fileSearched[selectedfile - 1], category);
-        fileSearched.clear();
-        break;
-    }
-    case 6:
-    {
-        cout << "\033[32m";
-        cout << "EXITING......\n";
-        cout << "\033[0m";
-        break;
-    }
-    default:
-    {
-        if (cin.fail())
+        default:
         {
-            cout << "\033[31m";
-            cout << "INVALID OPTION \n";
-            cout << "\033[0m";
-            // error state reset
-            cin.clear();
-            // buffer cleaning
-            cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            if (cin.fail())
+            {
+                cout << "\033[31m";
+                cout << "INVALID OPTION \n";
+                cout << "\033[0m";
+                // error state reset
+                cin.clear();
+                // buffer cleaning
+                cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            }
+            else
+            {
+                cout << "\033[31m";
+                cout << "INVALID OPTION \n";
+                cout << "\033[0m";
+            }
+            break;
         }
-        else
-        {
-            cout << "\033[31m";
-            cout << "INVALID OPTION \n";
-            cout << "\033[0m";
         }
-        break;
-    }
-    }
-}
-while (user_choice_main_menu != 6)
-    ;
-return SUCCESS;
+    } while (user_choice_main_menu != 6);
+    return SUCCESS;
 }
