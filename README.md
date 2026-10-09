@@ -55,13 +55,13 @@ That is how PC Guardian was born: first it only *told* me where my storage went,
 
 | Module | What it does |
 |---|---|
-| 🔍 **Recursive Scanner** | Walks through all sub-folders with a live animated scanning bar; safely skips permission-denied entries |
+| 🔍 **Recursive Scanner** | Walks through all sub-folders with a live animated scanning bar; safely skips permission-denied entries and reports how many were skipped |
 | 📊 **Storage Analyzer** | Total storage, largest file, extension count, and **category-wise usage with percentage bars** |
 | 🎯 **File Filter** | Filter by **extension**, **category**, or **size range** (KB / MB / GB / TB) |
 | 🔎 **File Search** | Case-insensitive partial-name search across the whole scan |
 | ↕️ **File Sort** | Sort by **size**, **name**, **extension** or **date** (ascending / descending) |
-| 📁 **Folder Separation** | Auto-organize files into folders — **Category based ✅** and **Name based ✅** |
-| 📄 **File Report** | Detailed single-file report: name, location, extension, size, category, size type |
+| 📁 **Folder Separation** | Auto-organize files into folders — **Category based ✅**, **Name based ✅** and **Size based ✅** (with preview + confirmation before anything moves) |
+| 📄 **File Report** | Detailed single-file report: name, location, extension, size, category, size type. Also works when you give the program a single file path instead of a folder |
 | 🕒 **Last Modified Date** | Human-readable timestamps via `<chrono>` + `put_time` |
 | 🎨 **Colored UI** | ANSI colored menus, status messages and progress bars |
 
@@ -85,11 +85,11 @@ That is how PC Guardian was born: first it only *told* me where my storage went,
 
 ## 📁 Folder Separation in Detail
 
-This is the part where PC Guardian stops being a *reporter* and becomes a *cleaner*. Both modes below are **tested and working**. ✅
+This is the part where PC Guardian stops being a *reporter* and becomes a *cleaner*. Every mode follows the same safe flow: **build rules ➜ show an Organization Preview ➜ ask for confirmation ➜ move files with a live progress bar**.
 
 ### ✅ Category Based
 
-Files are grouped automatically by type (Videos, Images, Audio, Documents, Applications, Archives, Coding). Before anything is moved, the tool lists **which folders will be created** and asks for confirmation, then shows a live progress bar.
+Files are grouped automatically by type (Videos, Images, Audio, Documents, Applications, Archives, Coding). Anything the tool does not recognise (including files with no extension) goes into an `other` folder. Before anything is moved, the tool lists **which folders will be created** and asks for confirmation, then shows a preview and a live progress bar.
 
 <img src="assets/03-category-based.svg" alt="Category based folder separation" width="100%"/>
 
@@ -113,6 +113,8 @@ Downloads/                      Downloads/
 
 Create **custom rules**: a *keyword* ➜ a *folder name*. Any file whose name contains the keyword (case-insensitive, so `ARYAN` = `aryan`) lands in that folder. Add as many rules as you like — you are the boss here. 😎
 
+If a file matches more than one rule, the **first rule wins**. Files that match no rule are collected into an `Other` folder.
+
 <img src="assets/04-name-based.svg" alt="Name based folder separation" width="100%"/>
 
 | Keyword | Folder | Example match |
@@ -121,9 +123,39 @@ Create **custom rules**: a *keyword* ➜ a *folder name*. Any file whose name co
 | `resume` | `Career/` | `my_resume_v2.docx` |
 | `holiday` | `Trips/` | `holiday_goa.jpg` |
 
-### 🚧 Size Based & ↩️ Undo Changes
+### ✅ Size Based *(new in this version!)*
 
-Still cooking in the kitchen. 🍳 Both are marked **under development** in the app.
+Organize by how big your files are. Two modes:
+
+**1️⃣ Default size categories**
+
+The tool looks at the largest file in your scan and splits the range into three equal buckets:
+
+| Folder | Rule |
+|---|---|
+| `Small/` | size below ⅓ of the largest file |
+| `Medium/` | between ⅓ and ⅔ of the largest file |
+| `Large/` | everything bigger |
+
+**2️⃣ Custom size range**
+
+Define your own rules: a **minimum size (MB)**, a **maximum size (MB)** and a **folder name**. Add as many rules as you want.
+
+- Invalid ranges (negative values, min greater than max) are rejected
+- **Overlapping ranges are blocked**, so one file can never be claimed by two rules
+- Files that fit no range go to an `Other` folder
+
+<img src="assets/06-size-based.svg" alt="Size based folder separation" width="100%"/>
+
+| Min (MB) | Max (MB) | Folder | Example match |
+|---|---|---|---|
+| `0` | `10` | `Tiny/` | `notes.pdf` (2 MB) |
+| `11` | `500` | `Chunky/` | `lecture.mp4` (240 MB) |
+| `501` | `5000` | `Heavy/` | `game_setup.exe` (2.1 GB) |
+
+### 🚧 Undo Changes
+
+Still cooking in the kitchen. 🍳 It is marked **under development** in the app, so for now every move is final.
 
 ---
 
@@ -140,15 +172,21 @@ flowchart LR
     E --> H[Sort]
     E --> I[Folder Separation]
     E --> J[File Report]
+    I --> K[Category / Name / Size Rules]
+    K --> L[Preview + Confirm]
+    L --> M[Move Files + Progress Bar]
 ```
 
 **Core design**
 
 - `FileInfo` class — encapsulates name, extension, relative path, size and last write time
 - `AnalysisResult` struct — holds totals, largest file and category/extension statistics
+- `NameRule` and `sizeRule` structs — hold the user-defined rules for name based and size based organization
 - `createCategoryMap()` — maps extensions to categories using `std::map`
 - Sorting uses **lambda functions** on a *copy* of the vector, so the original scan order is never disturbed
+- Every organization mode produces a `vector<pair<FileInfo, string>>` (file ➜ target folder), which is shown as a preview and then handed to a single shared `processOrganization()` function
 - File moves use `fs::rename` with `std::error_code` for safe, exception-free error handling
+- If a file with the same name already exists in the target folder, the moved file is renamed automatically (`photo.jpg` ➜ `photo_1.jpg`) instead of overwriting anything
 
 ---
 
@@ -157,7 +195,7 @@ flowchart LR
 | | |
 |---|---|
 | **Language** | C++ (uses `<format>`, so C++20 is required) |
-| **Libraries** | STL, `<filesystem>`, `<chrono>`, `<iomanip>`, `<algorithm>` |
+| **Libraries** | STL, `<filesystem>`, `<chrono>`, `<iomanip>`, `<algorithm>`, `<set>`, `<sstream>` |
 | **Interface** | Console / Terminal (ANSI colors) |
 | **Compiler** | GCC 13+ / Clang 16+ / MSVC 2022 |
 
@@ -191,8 +229,8 @@ PC Guardian is a **long-term project** and the road ahead is still pretty long. 
 | | Status | The vibe |
 |---|---|---|
 | 🧱 **Foundation** | ✅ Done | Scanner, analyzer, recursive scanning, progress bars, human-readable sizes |
-| 🗂️ **File Intelligence & Organization** | 🔨 In progress | Filter, search, sort, reports and folder separation (this is where we are now) |
-| ↩️ **Safety nets** | 🔜 Planned | Undo for organization, smarter handling of edge cases |
+| 🗂️ **File Intelligence & Organization** | ✅ Mostly done | Filter, search, sort, reports and all three folder separation modes (category, name, size) |
+| ↩️ **Safety nets** | 🔨 Next up | Undo for organization, smarter handling of edge cases |
 | 🔎 **Smart cleanup** | 🔜 Planned | Duplicate files, large files and old files detection |
 | 💻 **System health** | 🔜 Planned | CPU / RAM / Disk info and health reports |
 | 🤖 **Automation** | 💭 Dreaming | A PC Guardian that quietly keeps your folders tidy in the background |
@@ -202,8 +240,11 @@ PC Guardian is a **long-term project** and the road ahead is still pretty long. 
 
 ### 🐛 Known Quirks (being honest here)
 
-- Files **without an extension** are not handled by category organization yet — they need a proper "Other" folder flow.
-- A category folder that **already existed** before organizing may be left behind empty.
+- After files are organized, the in-memory scan is **not refreshed**. Restart the program (or re-scan) before running filter, search or another organization, otherwise it will still look for files at their old locations.
+- Custom size ranges accept **whole numbers of MB only** for now (no `1.5`).
+- Unrecognised files go to `other` in category mode but `Other` in name and size mode. Windows treats these as the same folder, but Linux/macOS would not.
+- A category folder that **already existed** before organizing may be left behind empty, and emptied sub-folders are not cleaned up.
+- If any entry is skipped during the scan (for example permission denied), the scan status shows as `INVALID` even though the rest of the results are fine.
 - Permission-denied scenarios on Windows are still waiting for proper testing.
 
 These are on the to-do list, not forgotten. 📝
@@ -212,7 +253,7 @@ These are on the to-do list, not forgotten. 📝
 
 ## 🎓 Concepts Practiced
 
-`OOP & Encapsulation` · `std::vector` · `std::map` · `std::set` · `std::pair` · `Lambda functions` · `std::filesystem` · `std::error_code` · `<chrono>` & `put_time` · `Input validation` · `ANSI escape codes` · `Modular functions`
+`OOP & Encapsulation` · `std::vector` · `std::map` · `std::set` · `std::pair` · `Structs` · `Lambda functions` · `std::filesystem` · `std::error_code` · `<chrono>` & `put_time` · `Input validation` · `ANSI escape codes` · `Modular functions`
 
 ---
 
