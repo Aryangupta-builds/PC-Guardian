@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 840" width="860" height="840" font-family="'Cascadia Mono','Cascadia Code',Consolas,'Courier New',monospace" font-size="14">
+  <defs>
+    <clipPath id="win"><rect width="860" height="840" rx="10"/></clipPath>
+  </defs>
+  <g clip-path="url(#win)">
+    <!-- window background -->
+    <rect width="860" height="840" fill="#0c0c0c"/>
+
+    <!-- title bar -->
+    <rect width="860" height="40" fill="#202020"/>
+    <!-- active tab -->
+    <path d="M10 40 V12 Q10 6 16 6 H214 Q220 6 220 12 V40 Z" fill="#0c0c0c"/>
+    <text x="30" y="28" fill="#ffffff" font-family="'Segoe UI',Arial,sans-serif" font-size="12">PC Guardian</text>
+    <text x="196" y="27" fill="#cccccc" font-family="'Segoe UI',Arial,sans-serif" font-size="13">✕</text>
+    <text x="236" y="28" fill="#cccccc" font-family="'Segoe UI',Arial,sans-serif" font-size="16">+</text>
+    <text x="262" y="28" fill="#cccccc" font-family="'Segoe UI',Arial,sans-serif" font-size="11">⌵</text>
+    <!-- window controls -->
+    <text x="742" y="26" fill="#ffffff" font-family="'Segoe UI',Arial,sans-serif" font-size="14">—</text>
+    <rect x="785" y="16" width="10" height="10" fill="none" stroke="#ffffff" stroke-width="1"/>
+    <text x="830" y="27" fill="#ffffff" font-family="'Segoe UI',Arial,sans-serif" font-size="14">✕</text>
+
+    <!-- terminal text -->
+    <g fill="#cccccc" xml:space="preserve">
+      <text x="20" y="84">--------------------------------</text>
+      <text x="20" y="104">     <tspan fill="#c19c00">FOLDER SEPARATION MENU</tspan></text>
+      <text x="20" y="124">--------------------------------</text>
+      <text x="20" y="144">[1] CATEGORY BASED</text>
+      <text x="20" y="164">[2] NAME BASED</text>
+      <text x="20" y="184">[3] SIZE BASED</text>
+      <text x="20" y="204" fill="#c50f1f">[4] UNDO CHANGES</text>
+      <text x="20" y="224">[5] BACK</text>
+      <text x="20" y="244">YOUR CHOICE : 3</text>
+
+      <text x="20" y="284" fill="#c19c00">SIZE-BASED ORGANIZATION</text>
+      <text x="20" y="304">[1] DEFAULT SIZE CATEGORIES</text>
+      <text x="20" y="324">[2] CUSTOM SIZE RANGE</text>
+      <text x="20" y="344">[3] GO BACK</text>
+      <text x="20" y="364">YOUR CHOICE : 2</text>
+
+      <text x="20" y="384">ENTER MINIMUM SIZE :0</text>
+      <text x="20" y="404">ENTER MAXIMUM SIZE :10</text>
+      <text x="20" y="424">ENTER FOLDER NAME :Small_Files</text>
+      <text x="20" y="444">Add another rule? (Y/N) : y</text>
+      <text x="20" y="464">ENTER MINIMUM SIZE :11</text>
+      <text x="20" y="484">ENTER MAXIMUM SIZE :500</text>
+      <text x="20" y="504">ENTER FOLDER NAME :Medium_Files</text>
+      <text x="20" y="524">Add another rule? (Y/N) : n</text>
+
+      <text x="20" y="544">--------------------------------</text>
+      <text x="20" y="564" fill="#c19c00">ORGANIZATION PREVIEW</text>
+      <text x="20" y="584">--------------------------------</text>
+      <text x="20" y="604">Medium_Files : 12</text>
+      <text x="20" y="624">Other : 3</text>
+      <text x="20" y="644">Small_Files : 41</text>
+
+      <text x="20" y="684">TOTAL FILES TO ORGANIZE : 56</text>
+
+      <text x="20" y="724">Do you want to continue?(Y/N) :y</text>
+      <text x="20" y="744"> ########################################  100.00%</text>
+      <text x="20" y="764" fill="#13a10e">ORGANIZATION COMPLETED SUCCESSFULLY</text>
+      <text x="20" y="784">SUCCESSFUL MOVES : 56</text>
+      <text x="20" y="804">FAILED MOVES     : 0</text>
+    </g>
+
+    <!-- cursor -->
+    <rect x="20" y="816" width="8" height="16" fill="#cccccc" opacity="0.85"/>
+  </g>
+</svg>
