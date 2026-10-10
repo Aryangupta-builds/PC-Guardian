@@ -21,6 +21,7 @@ namespace fs = std::filesystem;
 // ================= FORWARD DECLARATIONS =================
 class FileInfo;
 struct AnalysisResult;
+struct MoveRecord;
 // ================= FUNCTION DECLARATIONS =================
 
 pair<double, string> sizeconverter(long long bytesize);
@@ -118,6 +119,13 @@ struct AnalysisResult
     map<string, double> storagePercentage;
     map<string, long long> categoryStorage;
     map<string, double> categorystoragePercentage;
+};
+
+struct MoveRecord
+{
+    fs::path source_path;
+    fs::path destination_path;
+    bool success;
 };
 string getSingleFileSizeCategory(long long size)
 {
@@ -536,12 +544,11 @@ string trim(const string &s)
     return s.substr(start, end - start);
 }
 
-bool moveFILE(const fs::path source, const fs::path destinationFOLDER)
+MoveRecord moveFILE(const fs::path source, const fs::path destinationFOLDER)
 {
     if (!fs::exists(source))
     {
-        cout << "invalid source\n";
-        return false;
+        return {source, {}, false};
     }
 
     if (!fs::exists(destinationFOLDER))
@@ -554,7 +561,7 @@ bool moveFILE(const fs::path source, const fs::path destinationFOLDER)
             cout << "FOLDER CREATION FAILED!\n";
             cout << "ERROR :" << ec.message() << endl;
             cout << "\033[0m";
-            return false;
+            return {source, destinationFOLDER / source.filename(), false};
         }
     }
     // basically yaha pe destinationFOLDER mai source.filename() add hua hai
@@ -582,11 +589,11 @@ bool moveFILE(const fs::path source, const fs::path destinationFOLDER)
         cout << "FAILED FILE MOVING!\n";
         cout << "ERROR :" << ec.message() << endl;
         cout << "\033[0m";
-        return false;
+        return {source, destinationFILE, false};
     }
     else
     {
-        return true;
+        return {source, destinationFILE, true};
     }
 }
 
@@ -603,8 +610,9 @@ struct sizeRule
     string folderName_input;
 };
 
-void processOrganization(const vector<pair<FileInfo, string>> &filesToMove, const string parentpath, const int Max_bar_length, int &successfulmove, int &failedmove)
+void processOrganization(const vector<pair<FileInfo, string>> &filesToMove, vector<MoveRecord> &MoveHistory, const string parentpath, const int Max_bar_length, int &successfulmove, int &failedmove)
 {
+    MoveHistory.clear();
     int totalEnteries = filesToMove.size();
     int processedEnteries = 0;
     successfulmove = 0;
@@ -626,9 +634,9 @@ void processOrganization(const vector<pair<FileInfo, string>> &filesToMove, cons
 
         fs::path destination_path = fs::path(parentpath) / foldername;
 
-        bool move = moveFILE(source_path, destination_path);
-
-        if (move)
+        MoveRecord record = moveFILE(source_path, destination_path);
+        MoveHistory.push_back(record);
+        if (record.success)
         {
             successfulmove++;
         }
@@ -680,6 +688,44 @@ void showOrganizationPreview(const vector<pair<FileInfo, string>> &OrganizedFile
     }
 
     cout << "\nTOTAL FILES TO ORGANIZE : " << OrganizedFiles.size() << "\n\n";
+}
+
+void showMoveHistory(const vector<MoveRecord> &moveHistory)
+{
+    cout << "\n----------------------------\n";
+    cout << "\033[33m";
+    cout << "MOVE HISTORY\n";
+    cout << "\033[0m";
+    cout << "----------------------------\n";
+
+    if (moveHistory.empty())
+    {
+        cout << "\033[32m";
+        cout << "NO MOVE HISTORY AVALIABLE\n";
+        cout << "\033[0m";
+        return;
+    }
+
+    for (const auto &record : moveHistory)
+    {
+        cout << "\nSOURCE        :"
+             << record.source_path.string() << "\n";
+        cout << "DESTINATION   :"
+             << record.destination_path.string() << "\n";
+        if (record.success)
+        {
+            cout << "STATUS        :";
+            cout << "\033[32m" << "SUCCESS\n"
+                 << "\033[0m";
+        }
+        else
+        {
+            cout << "STATUS            :";
+            cout << "\033[31m" << "FAILED\n"
+                 << "\033[0m";
+        }
+        cout << "--------------------------------------\n";
+    }
 }
 
 int main()
@@ -748,6 +794,7 @@ int main()
     vector<FileInfo> filteredFilesbycategory;
     vector<FileInfo> filteredFilesbyextension;
     vector<FileInfo> files;
+    vector<MoveRecord> moveHistory;
 
     // flags
     bool allMoveSuccessFull = false;
@@ -2335,9 +2382,10 @@ int main()
                 cout << "[1] CATEGORY BASED\n";
                 cout << "[2] NAME BASED\n";
                 cout << "[3] SIZE BASED\n";
-                cout << "\033[31m" << "[4] UNDO CHANGES\n"
+                cout << "[4] MOVE HISTORY\n";
+                cout << "\033[31m" << "[5] UNDO CHANGES\n"
                      << "\033[0m";
-                cout << "[5] BACK\n";
+                cout << "[6] BACK\n";
                 cout << "YOUR CHOICE : ";
                 cin >> user_choice_fileSeperation_menu;
                 if (cin.fail())
@@ -2365,7 +2413,7 @@ int main()
                 long long minSize;
                 long long maxSize;
                 char user_responce_char;
-                //  // string folderName_input;  CASE 2 MAI ALREADY DEFINED HAI
+                //  // string folderName_input; CASE 2 MAI ALREADY DEFINED HAI
                 vector<sizeRule> sizeRules;
                 switch (user_choice_fileSeperation_menu)
                 {
@@ -2409,13 +2457,13 @@ int main()
                         showOrganizationPreview(organizedFiles);
 
                         // confirmation
-                        cout << "\nDo you want to continue?(Y/N) :";
+                        cout << "Do you want to continue?(Y/N) :";
                         char user_responce_after_preview;
                         cin >> user_responce_after_preview;
 
                         if (user_responce_after_preview == 'Y' || user_responce_after_preview == 'y')
                         {
-                            processOrganization(organizedFiles, path, Max_bar_length, successfulmoves, failedmoves);
+                            processOrganization(organizedFiles, moveHistory, path, Max_bar_length, successfulmoves, failedmoves);
                         }
                         else if (user_responce_after_preview == 'N' || user_responce_after_preview == 'n')
                         {
@@ -2463,7 +2511,7 @@ int main()
                     do
                     {
                         cout << "Enter keyword to organize files : ";
-                      
+
                         getline(cin, keyword_input);
                         keyword_input = trim(keyword_input);
 
@@ -2490,10 +2538,11 @@ int main()
                         nameRules.push_back({keyword_input, folderName_input});
                         cout << "Add another rule? (Y/N) : ";
                         cin >> user_responce;
-                        if(user_responce == 'N' || user_responce == 'n'){
+                        if (user_responce == 'N' || user_responce == 'n')
+                        {
                             break;
                         }
-                          cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                        cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
                     } while (!(user_responce == 'N' || user_responce == 'n'));
 
@@ -2564,13 +2613,13 @@ int main()
                     showOrganizationPreview(organizedFiles);
 
                     // confirmation
-                    cout << "\nDo you want to continue?(Y/N) :";
+                    cout << "Do you want to continue?(Y/N) :";
                     char user_responce_after_preview;
                     cin >> user_responce_after_preview;
 
                     if (user_responce_after_preview == 'Y' || user_responce_after_preview == 'y')
                     {
-                        processOrganization(organizedFiles, path, Max_bar_length, successfulmoves, failedmoves);
+                        processOrganization(organizedFiles, moveHistory, path, Max_bar_length, successfulmoves, failedmoves);
                     }
                     else if (user_responce_after_preview == 'N' || user_responce_after_preview == 'n')
                     {
@@ -2625,13 +2674,13 @@ int main()
                             showOrganizationPreview(organizedFiles);
 
                             // confirmation
-                            cout << "\nDo you want to continue?(Y/N) :";
+                            cout << "Do you want to continue?(Y/N) :";
                             char user_responce_after_preview;
                             cin >> user_responce_after_preview;
 
                             if (user_responce_after_preview == 'Y' || user_responce_after_preview == 'y')
                             {
-                                processOrganization(organizedFiles, path, Max_bar_length, successfulmoves, failedmoves);
+                                processOrganization(organizedFiles, moveHistory, path, Max_bar_length, successfulmoves, failedmoves);
                             }
                             else if (user_responce_after_preview == 'N' || user_responce_after_preview == 'n')
                             {
@@ -2778,13 +2827,13 @@ int main()
                             showOrganizationPreview(organizedFiles);
 
                             // confirmation
-                            cout << "\nDo you want to continue?(Y/N) :";
+                            cout << "Do you want to continue?(Y/N) :";
                             char user_responce_after_preview;
                             cin >> user_responce_after_preview;
 
                             if (user_responce_after_preview == 'Y' || user_responce_after_preview == 'y')
                             {
-                                processOrganization(organizedFiles, path, Max_bar_length, successfulmoves, failedmoves);
+                                processOrganization(organizedFiles, moveHistory, path, Max_bar_length, successfulmoves, failedmoves);
                             }
                             else if (user_responce_after_preview == 'N' || user_responce_after_preview == 'n')
                             {
@@ -2831,12 +2880,17 @@ int main()
                 }
                 case 4:
                 {
+                    showMoveHistory(moveHistory);
+                    break;
+                }
+                case 5:
+                {
                     cout << "\033[31m";
                     cout << "\nUNDER DEVELOPMENT\n\n";
                     cout << "\033[0m";
                     break;
                 }
-                case 5:
+                case 6:
                 {
                     cout << "\033[32m";
                     cout << "GOING BACK...\n";
@@ -2863,7 +2917,7 @@ int main()
                     }
                 }
                 }
-            } while (user_choice_fileSeperation_menu != 5);
+            } while (user_choice_fileSeperation_menu != 6);
 
             break;
         }
