@@ -15,6 +15,7 @@
 #include <sstream>
 #include <ctime>
 #include <set>
+#include <fstream>
 using namespace std;
 namespace fs = std::filesystem;
 
@@ -610,9 +611,43 @@ struct sizeRule
     string folderName_input;
 };
 
+bool saveMoveHistory(vector<MoveRecord> &movehistory)
+{
+    ofstream historyFILE("move_history.txt", ios::app);
+    if (!historyFILE)
+    {
+        cout << "ERROR : COULD NOT SAVE HISTORY FILE\n";
+        return false;
+    }
+    historyFILE << "============MOVE HISTORY============\n";
+    for (const auto &record : movehistory)
+    {
+        historyFILE << "\nSOURCE        :"
+                    << record.source_path.string() << "\n";
+        historyFILE << "DESTINATION   :"
+                    << record.destination_path.string() << "\n";
+        if (record.success)
+        {
+            historyFILE << "STATUS        :";
+            historyFILE << "\033[32m" << "SUCCESS\n"
+                        << "\033[0m";
+        }
+        else
+        {
+            historyFILE << "STATUS            :";
+            historyFILE << "\033[31m" << "FAILED\n"
+                        << "\033[0m";
+        }
+        historyFILE << "--------------------------------------\n";
+    }
+    historyFILE.close();
+    cout << "MOVE HISTORY SAVED SUCCESSFULLY\n";
+    return true;
+}
+
 void processOrganization(const vector<pair<FileInfo, string>> &filesToMove, vector<MoveRecord> &MoveHistory, const string parentpath, const int Max_bar_length, int &successfulmove, int &failedmove)
 {
-    MoveHistory.clear();
+    // MoveHistory.clear();
     int totalEnteries = filesToMove.size();
     int processedEnteries = 0;
     successfulmove = 0;
@@ -666,6 +701,37 @@ void processOrganization(const vector<pair<FileInfo, string>> &filesToMove, vect
 
     cout << "SUCCESSFUL MOVES : " << successfulmove << "\n";
     cout << "FAILED MOVES     : " << failedmove << "\n";
+
+    char saveChoice;
+    cout << "\nDO YOU WANT TO SAVE MOVE HISTORY ? (Y/N): ";
+    cin >> saveChoice;
+    if (saveChoice == 'Y' || saveChoice == 'y')
+    {
+        saveMoveHistory(MoveHistory);
+    }
+    else if (saveChoice != 'N' && saveChoice != 'n')
+    {
+        cout << "INVALID CHOICE. HISTORY NOT SAVED. \n";
+    }
+}
+
+void showPreviousMoveHistory()
+{
+    ifstream historyFile("move_history.txt");
+
+    if (!historyFile)
+    {
+        cout << "NO PREVIOUS MOVE HISTORY AVAILABLE\n";
+        return;
+    }
+
+    string line;
+    cout << "\n========== PREVIOUS MOVE HISTORY ==========\n";
+
+    while (getline(historyFile, line))
+    {
+        cout << line << '\n';
+    }
 }
 
 void showOrganizationPreview(const vector<pair<FileInfo, string>> &OrganizedFiles)
@@ -2880,7 +2946,51 @@ int main()
                 }
                 case 4:
                 {
-                    showMoveHistory(moveHistory);
+                    cout << "[1] SEE CURRENT HISTORY\n";
+                    cout << "[2] SEE PREVIOUS HISTORY\n";
+                    cout << "[3] BACK\n";
+                    cout << "YOUR CHOICE :";
+                    int responce;
+                    cin >> responce;
+                    switch (responce)
+                    {
+                    case 1:
+                    {
+                        showMoveHistory(moveHistory);
+                        break;
+                    }
+                    case 2:
+                    {
+                        showPreviousMoveHistory();
+                        break;
+                    }
+                    case 3:
+                    {
+                        cout << "\033[32m";
+                        cout << "GOING BACK...\n";
+                        cout << "\033[0m";
+                        break;
+                    }
+                    default:
+                    {
+                        if (cin.fail())
+                        {
+                            cout << "\033[31m";
+                            cout << "INVALID OPTION \n";
+                            cout << "\033[0m";
+                            // error state reset
+                            cin.clear();
+                            // buffer cleaning
+                            cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                        }
+                        else
+                        {
+                            cout << "\033[31m";
+                            cout << "INVALID OPTION \n";
+                            cout << "\033[0m";
+                        }
+                    }
+                    }
                     break;
                 }
                 case 5:
