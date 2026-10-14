@@ -645,10 +645,11 @@ bool saveMoveHistory(vector<MoveRecord> &movehistory)
     return true;
 }
 
-void processOrganization(const vector<pair<FileInfo, string>> &filesToMove, vector<MoveRecord> &MoveHistory, const string parentpath, const int Max_bar_length, int &successfulmove, int &failedmove)
+void processOrganization(const vector<pair<FileInfo, string>> &filesToMove, vector<MoveRecord> &MoveHistory, const string parentpath, size_t &latestOperationStart, size_t &latestOperationEnd, const int Max_bar_length, int &successfulmove, int &failedmove)
 {
     // MoveHistory.clear();
     int totalEnteries = filesToMove.size();
+    latestOperationStart = MoveHistory.size();
     int processedEnteries = 0;
     successfulmove = 0;
     failedmove = 0;
@@ -686,6 +687,7 @@ void processOrganization(const vector<pair<FileInfo, string>> &filesToMove, vect
         cout.flush();
     }
     cout << "\n";
+    latestOperationEnd = MoveHistory.size();
     if (failedmove == 0)
     {
         cout << "\033[32m";
@@ -860,7 +862,10 @@ int main()
     vector<FileInfo> filteredFilesbycategory;
     vector<FileInfo> filteredFilesbyextension;
     vector<FileInfo> files;
+    // undo change variable
     vector<MoveRecord> moveHistory;
+    size_t latestOperationStart = 0;
+    size_t latestOperationEnd = 0;
 
     // flags
     bool allMoveSuccessFull = false;
@@ -2449,8 +2454,7 @@ int main()
                 cout << "[2] NAME BASED\n";
                 cout << "[3] SIZE BASED\n";
                 cout << "[4] MOVE HISTORY\n";
-                cout << "\033[31m" << "[5] UNDO CHANGES\n"
-                     << "\033[0m";
+                cout << "[5] UNDO CHANGES\n";
                 cout << "[6] BACK\n";
                 cout << "YOUR CHOICE : ";
                 cin >> user_choice_fileSeperation_menu;
@@ -2529,7 +2533,7 @@ int main()
 
                         if (user_responce_after_preview == 'Y' || user_responce_after_preview == 'y')
                         {
-                            processOrganization(organizedFiles, moveHistory, path, Max_bar_length, successfulmoves, failedmoves);
+                            processOrganization(organizedFiles, moveHistory, path, latestOperationStart, latestOperationEnd, Max_bar_length, successfulmoves, failedmoves);
                         }
                         else if (user_responce_after_preview == 'N' || user_responce_after_preview == 'n')
                         {
@@ -2685,7 +2689,7 @@ int main()
 
                     if (user_responce_after_preview == 'Y' || user_responce_after_preview == 'y')
                     {
-                        processOrganization(organizedFiles, moveHistory, path, Max_bar_length, successfulmoves, failedmoves);
+                        processOrganization(organizedFiles, moveHistory, path, latestOperationStart, latestOperationEnd, Max_bar_length, successfulmoves, failedmoves);
                     }
                     else if (user_responce_after_preview == 'N' || user_responce_after_preview == 'n')
                     {
@@ -2746,7 +2750,7 @@ int main()
 
                             if (user_responce_after_preview == 'Y' || user_responce_after_preview == 'y')
                             {
-                                processOrganization(organizedFiles, moveHistory, path, Max_bar_length, successfulmoves, failedmoves);
+                                processOrganization(organizedFiles, moveHistory, path, latestOperationStart, latestOperationEnd, Max_bar_length, successfulmoves, failedmoves);
                             }
                             else if (user_responce_after_preview == 'N' || user_responce_after_preview == 'n')
                             {
@@ -2899,7 +2903,7 @@ int main()
 
                             if (user_responce_after_preview == 'Y' || user_responce_after_preview == 'y')
                             {
-                                processOrganization(organizedFiles, moveHistory, path, Max_bar_length, successfulmoves, failedmoves);
+                                processOrganization(organizedFiles, moveHistory, path, latestOperationStart, latestOperationEnd, Max_bar_length, successfulmoves, failedmoves);
                             }
                             else if (user_responce_after_preview == 'N' || user_responce_after_preview == 'n')
                             {
@@ -2995,9 +2999,59 @@ int main()
                 }
                 case 5:
                 {
-                    cout << "\033[31m";
-                    cout << "\nUNDER DEVELOPMENT\n\n";
-                    cout << "\033[0m";
+                    int undoChange = 0;
+                    //*SIZE BASED ORGANIZATION
+                    cout << "\033[33m" << "\nUNDO CHANGES ORGANIZATION\n"
+                         << "\033[0m";
+                    do
+                    {
+                        cout << "[1] CURRENT UNDO\n";
+                        cout << "[2] OLD UNDO\n";
+                        cout << "[3] BACK\n";
+                        cout << "YOUR CHOICE : ";
+                        cin >> undoChange;
+
+                        switch (undoChange)
+                        {
+                        case 1:
+                        {
+                            cout << "under development\n";
+                            break;
+                        }
+                        case 2:
+                        {
+                            cout << "under development\n";
+                            break;
+                        }
+                        case 3:
+                        {
+                            cout << "\033[32m";
+                            cout << "Going back...\n";
+                            cout << "\033[0m";
+                            break;
+                        }
+                        default:
+                        {
+                            if (cin.fail())
+                            {
+                                cout << "\033[31m";
+                                cout << "INVALID OPTION \n";
+                                cout << "\033[0m";
+                                // error state reset
+                                cin.clear();
+                                // buffer cleaning
+                                cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                            }
+                            else
+                            {
+                                cout << "\033[31m";
+                                cout << "INVALID OPTION \n";
+                                cout << "\033[0m";
+                            }
+                        }
+                        }
+
+                    } while (undoChange != 3);
                     break;
                 }
                 case 6:
