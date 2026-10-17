@@ -4,7 +4,7 @@
 
 ### Smart File & System Health Manager
 
-*Scan. Analyze. Filter. Organize — all from your terminal.*
+*Scan. Analyze. Filter. Organize. Track. All from your terminal.*
 
 ![Language](https://img.shields.io/badge/language-C%2B%2B-00599C?logo=c%2B%2B&logoColor=white)
 ![Standard](https://img.shields.io/badge/standard-C%2B%2B20-blue)
@@ -25,6 +25,7 @@
 - [Features](#-features)
 - [Terminal Preview](#-terminal-preview)
 - [Folder Separation](#-folder-separation-in-detail)
+- [Move History](#-move-history-new)
 - [How It Works](#-how-it-works)
 - [Tech Stack](#-tech-stack)
 - [Build & Run](#-build--run)
@@ -36,9 +37,9 @@
 
 ## 📖 About
 
-**PC Guardian** is a console-based file management tool written in **C++**. Point it at any folder (or a single file) and it will recursively scan everything inside, build a clear storage report, and give you tools to **filter, search, sort and automatically organize** your files.
+**PC Guardian** is a console-based file management tool written in **C++**. Point it at any folder (or a single file) and it will recursively scan everything inside, build a clear storage report, and give you tools to **filter, search, sort and automatically organize** your files, while keeping a record of every file it moves.
 
-It is also my way of learning C++ the fun way: instead of solving 100 textbook problems, I built something I would actually use. OOP, STL, lambdas, `std::filesystem`, `<chrono>` — all of it, in one app. 😄
+It is also my way of learning C++ the fun way: instead of solving 100 textbook problems, I built something I would actually use. OOP, STL, lambdas, `std::filesystem`, `<chrono>`, file handling — all of it, in one app. 😄
 
 ### 🤔 Origin Story
 
@@ -47,7 +48,7 @@ It is also my way of learning C++ the fun way: instead of solving 100 textbook p
 
 No idea what was eating my disk. Downloads folder = a battlefield. Total chaos. I could have just opened Windows Storage settings like a normal person, but nope, I decided to write a C++ program instead. Classic.
 
-That is how PC Guardian was born: first it only *told* me where my storage went, then I got tired of cleaning manually, so it learned to **organize the mess by itself**. 🧹
+That is how PC Guardian was born: first it only *told* me where my storage went, then I got tired of cleaning manually, so it learned to **organize the mess by itself**. 🧹 And now it even **remembers what it moved**, so I stop asking "wait, where did that file go?" 🕵️
 
 ---
 
@@ -61,6 +62,7 @@ That is how PC Guardian was born: first it only *told* me where my storage went,
 | 🔎 **File Search** | Case-insensitive partial-name search across the whole scan |
 | ↕️ **File Sort** | Sort by **size**, **name**, **extension** or **date** (ascending / descending) |
 | 📁 **Folder Separation** | Auto-organize files into folders — **Category based ✅**, **Name based ✅** and **Size based ✅** (with preview + confirmation before anything moves) |
+| 🧾 **Move History** *(new)* | Every move is recorded (source ➜ destination ➜ success/failed). View this session's history, or **save it to a file** and read it back in a later run |
 | 📄 **File Report** | Detailed single-file report: name, location, extension, size, category, size type. Also works when you give the program a single file path instead of a folder |
 | 🕒 **Last Modified Date** | Human-readable timestamps via `<chrono>` + `put_time` |
 | 🎨 **Colored UI** | ANSI colored menus, status messages and progress bars |
@@ -85,7 +87,18 @@ That is how PC Guardian was born: first it only *told* me where my storage went,
 
 ## 📁 Folder Separation in Detail
 
-This is the part where PC Guardian stops being a *reporter* and becomes a *cleaner*. Every mode follows the same safe flow: **build rules ➜ show an Organization Preview ➜ ask for confirmation ➜ move files with a live progress bar**.
+This is the part where PC Guardian stops being a *reporter* and becomes a *cleaner*. Every mode follows the same safe flow: **build rules ➜ show an Organization Preview ➜ ask for confirmation ➜ move files with a live progress bar ➜ offer to save the move history**.
+
+The Folder Separation menu now looks like this:
+
+```text
+[1] CATEGORY BASED
+[2] NAME BASED
+[3] SIZE BASED
+[4] MOVE HISTORY
+[5] UNDO CHANGES
+[6] BACK
+```
 
 ### ✅ Category Based
 
@@ -123,7 +136,7 @@ If a file matches more than one rule, the **first rule wins**. Files that match 
 | `resume` | `Career/` | `my_resume_v2.docx` |
 | `holiday` | `Trips/` | `holiday_goa.jpg` |
 
-### ✅ Size Based *(new in this version!)*
+### ✅ Size Based
 
 Organize by how big your files are. Two modes:
 
@@ -153,9 +166,43 @@ Define your own rules: a **minimum size (MB)**, a **maximum size (MB)** and a **
 | `11` | `500` | `Chunky/` | `lecture.mp4` (240 MB) |
 | `501` | `5000` | `Heavy/` | `game_setup.exe` (2.1 GB) |
 
+---
+
+## 🧾 Move History *(new!)*
+
+PC Guardian now keeps a record of **every file it moves**. Each entry stores the **source path**, the **destination path** and whether the move **succeeded or failed**.
+
+**After every organization**, the tool shows how many moves worked and how many failed, then asks:
+
+```text
+SUCCESSFUL MOVES : 42
+FAILED MOVES     : 0
+
+DO YOU WANT TO SAVE MOVE HISTORY ? (Y/N):
+```
+
+**From the menu** (`Folder Separation ➜ [4] MOVE HISTORY`):
+
+| Option | What it shows |
+|---|---|
+| `[1] SEE CURRENT HISTORY` | Everything moved in the **current session** |
+| `[2] SEE PREVIOUS HISTORY` | The saved log from **earlier runs**, read from `move_history.txt` |
+| `[3] BACK` | Back to the previous menu |
+
+A history entry looks like this:
+
+```text
+SOURCE        :C:\Users\Aryan\Downloads\holiday.jpg
+DESTINATION   :C:\Users\Aryan\Downloads\Images\holiday.jpg
+STATUS        :SUCCESS
+--------------------------------------
+```
+
+> 💾 The log is saved to **`move_history.txt`**, in the folder where you run the program. New saves are **appended**, so older logs are never overwritten.
+
 ### 🚧 Undo Changes
 
-Still cooking in the kitchen. 🍳 It is marked **under development** in the app, so for now every move is final.
+Still cooking in the kitchen. 🍳 The menu is ready (**Current Undo** for this session and **Old Undo** for saved history) but both are marked **under development**, so for now every move is final. Move History is the groundwork that will make undo possible, because the tool already knows exactly where each file came from and where it went.
 
 ---
 
@@ -175,6 +222,8 @@ flowchart LR
     I --> K[Category / Name / Size Rules]
     K --> L[Preview + Confirm]
     L --> M[Move Files + Progress Bar]
+    M --> N[Move History]
+    N --> O[(move_history.txt)]
 ```
 
 **Core design**
@@ -182,11 +231,14 @@ flowchart LR
 - `FileInfo` class — encapsulates name, extension, relative path, size and last write time
 - `AnalysisResult` struct — holds totals, largest file and category/extension statistics
 - `NameRule` and `sizeRule` structs — hold the user-defined rules for name based and size based organization
+- `MoveRecord` struct — stores one move (source path, destination path, success flag); a `vector<MoveRecord>` is the session's move history
 - `createCategoryMap()` — maps extensions to categories using `std::map`
 - Sorting uses **lambda functions** on a *copy* of the vector, so the original scan order is never disturbed
 - Every organization mode produces a `vector<pair<FileInfo, string>>` (file ➜ target folder), which is shown as a preview and then handed to a single shared `processOrganization()` function
+- `processOrganization()` moves each file, records a `MoveRecord`, updates the progress bar and counts successes/failures
 - File moves use `fs::rename` with `std::error_code` for safe, exception-free error handling
 - If a file with the same name already exists in the target folder, the moved file is renamed automatically (`photo.jpg` ➜ `photo_1.jpg`) instead of overwriting anything
+- `saveMoveHistory()` writes the log with `ofstream` (append mode) and `showPreviousMoveHistory()` reads it back line by line with `ifstream`
 
 ---
 
@@ -195,7 +247,7 @@ flowchart LR
 | | |
 |---|---|
 | **Language** | C++ (uses `<format>`, so C++20 is required) |
-| **Libraries** | STL, `<filesystem>`, `<chrono>`, `<iomanip>`, `<algorithm>`, `<set>`, `<sstream>` |
+| **Libraries** | STL, `<filesystem>`, `<chrono>`, `<iomanip>`, `<algorithm>`, `<set>`, `<sstream>`, `<fstream>` |
 | **Interface** | Console / Terminal (ANSI colors) |
 | **Compiler** | GCC 13+ / Clang 16+ / MSVC 2022 |
 
@@ -218,7 +270,7 @@ pc_guardian.exe        # Windows
 
 > 💡 On Windows, use **Windows Terminal** or a recent PowerShell/CMD so ANSI colors render correctly.
 
-> ⚠️ **Safety tip:** Folder Separation **moves real files**. Please test on a sample folder first (do not start with your wedding photos 😅) — the *Undo* feature is not available yet.
+> ⚠️ **Safety tip:** Folder Separation **moves real files**. Please test on a sample folder first (do not start with your wedding photos 😅). Move History shows you where everything went, but the *Undo* feature is not available yet.
 
 ---
 
@@ -230,7 +282,7 @@ PC Guardian is a **long-term project** and the road ahead is still pretty long. 
 |---|---|---|
 | 🧱 **Foundation** | ✅ Done | Scanner, analyzer, recursive scanning, progress bars, human-readable sizes |
 | 🗂️ **File Intelligence & Organization** | ✅ Mostly done | Filter, search, sort, reports and all three folder separation modes (category, name, size) |
-| ↩️ **Safety nets** | 🔨 Next up | Undo for organization, smarter handling of edge cases |
+| ↩️ **Safety nets** | 🔨 In progress | Move history is in ✅, **undo** is next, plus smarter handling of edge cases |
 | 🔎 **Smart cleanup** | 🔜 Planned | Duplicate files, large files and old files detection |
 | 💻 **System health** | 🔜 Planned | CPU / RAM / Disk info and health reports |
 | 🤖 **Automation** | 💭 Dreaming | A PC Guardian that quietly keeps your folders tidy in the background |
@@ -246,6 +298,9 @@ PC Guardian is a **long-term project** and the road ahead is still pretty long. 
 - A category folder that **already existed** before organizing may be left behind empty, and emptied sub-folders are not cleaned up.
 - If any entry is skipped during the scan (for example permission denied), the scan status shows as `INVALID` even though the rest of the results are fine.
 - Permission-denied scenarios on Windows are still waiting for proper testing.
+- **Saved history file:** the status colors are written as raw ANSI codes, so `move_history.txt` can look messy in a plain text editor (it looks fine in the terminal).
+- **Saving twice in one session:** each save appends the whole session history again, so earlier entries can appear more than once in the file.
+- Entering an invalid choice at some `Y/N` prompts cancels that step and returns to the menu, so just run the option again.
 
 These are on the to-do list, not forgotten. 📝
 
@@ -253,7 +308,7 @@ These are on the to-do list, not forgotten. 📝
 
 ## 🎓 Concepts Practiced
 
-`OOP & Encapsulation` · `std::vector` · `std::map` · `std::set` · `std::pair` · `Structs` · `Lambda functions` · `std::filesystem` · `std::error_code` · `<chrono>` & `put_time` · `Input validation` · `ANSI escape codes` · `Modular functions`
+`OOP & Encapsulation` · `std::vector` · `std::map` · `std::set` · `std::pair` · `Structs` · `Lambda functions` · `std::filesystem` · `std::error_code` · `<chrono>` & `put_time` · `File handling (ifstream / ofstream)` · `Input validation` · `ANSI escape codes` · `Modular functions`
 
 ---
 
