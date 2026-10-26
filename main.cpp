@@ -656,6 +656,7 @@ void processOrganization(const vector<pair<FileInfo, string>> &filesToMove, vect
 
     if (filesToMove.empty())
     {
+        latestOperationStart = latestOperationEnd;
         cout << "\033[31m";
         cout << "NO FILES TO ORGANIZE\n";
         cout << "\033[0m";
@@ -3015,7 +3016,69 @@ int main()
                         {
                         case 1:
                         {
-                            cout << "under development\n";
+                            if (latestOperationStart >= latestOperationEnd)
+                            {
+                                cout << "\033[31m";
+                                cout << "No operation available to undo.\n";
+                                cout << "\033[0m";
+                                break;
+                            }
+                            if (latestOperationEnd > moveHistory.size())
+                            {
+                                cout << "\033[31m";
+                                cout << "Undo history is invalid. cannot undo safely.\n";
+                                cout << "\033[0m";
+                                break;
+                            }
+                            for (size_t i = latestOperationEnd; i > latestOperationStart;)
+                            {
+                                --i;
+                                const MoveRecord &record = moveHistory[i];
+                                if (!record.success)
+                                {
+                                    continue;
+                                }
+                                // cout << "Undo candidate: "
+                                //      << record.destination_path.string()
+                                //      << "\n";
+
+                                std::error_code ec;
+
+                                if (!fs::exists(record.destination_path, ec) || ec)
+                                {
+                                    cout << "\033[31m";
+                                    cout << "Cannot undo: destination file is missing or inaccessible.\n";
+                                    cout << "\033[0m";
+                                    continue;
+                                }
+
+                                if (fs::exists(record.source_path, ec) || ec)
+                                {
+                                    cout << "\033[31m";
+                                    cout << "Cannot undo: original source path already exists or is inaccessible.\n";
+                                    cout << "\033[0m";
+                                    continue;
+                                }
+
+                                // cout << "Safe to restore: "
+                                //      << record.destination_path.string()
+                                //      << '\n';
+
+                                fs::rename(record.destination_path, record.source_path, ec);
+                                if (ec)
+                                {
+                                    cout << "\033[31m";
+                                    cout << "Undo failed: " << ec.message() << "\n";
+                                    cout << "\033[0m";
+                                    ec.clear();
+                                    continue;
+                                }
+                                cout << "\033[32m";
+                                cout << "Undo Successful: "
+                                     << record.source_path.string() << "\n";
+                                cout << "\033[0m";
+                            }
+                            latestOperationStart = latestOperationEnd;
                             break;
                         }
                         case 2:
