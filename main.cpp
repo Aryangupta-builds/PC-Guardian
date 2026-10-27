@@ -127,6 +127,7 @@ struct MoveRecord
     fs::path source_path;
     fs::path destination_path;
     bool success;
+    bool destination_folder_created = false;
 };
 string getSingleFileSizeCategory(long long size)
 {
@@ -549,21 +550,26 @@ MoveRecord moveFILE(const fs::path source, const fs::path destinationFOLDER)
 {
     if (!fs::exists(source))
     {
-        return {source, {}, false};
+        return {source, {}, false, false};
     }
 
+    bool destinationFolderCreated = false;
     if (!fs::exists(destinationFOLDER))
     {
         error_code ec;
-        fs::create_directory(destinationFOLDER, ec);
-        if (ec)
+        bool created = fs::create_directory(destinationFOLDER, ec);
+        if (ec || !created)
         {
             cout << "\033[31m";
             cout << "FOLDER CREATION FAILED!\n";
-            cout << "ERROR :" << ec.message() << endl;
+            if (ec)
+            {
+                cout << "ERROR :" << ec.message() << endl;
+            }
             cout << "\033[0m";
-            return {source, destinationFOLDER / source.filename(), false};
+            return {source, destinationFOLDER / source.filename(), false, false};
         }
+        destinationFolderCreated = true;
     }
     // basically yaha pe destinationFOLDER mai source.filename() add hua hai
     // path ko add karne ke liye / use karte hai
@@ -590,11 +596,11 @@ MoveRecord moveFILE(const fs::path source, const fs::path destinationFOLDER)
         cout << "FAILED FILE MOVING!\n";
         cout << "ERROR :" << ec.message() << endl;
         cout << "\033[0m";
-        return {source, destinationFILE, false};
+        return {source, destinationFILE, false, destinationFolderCreated};
     }
     else
     {
-        return {source, destinationFILE, true};
+        return {source, destinationFILE, true, destinationFolderCreated};
     }
 }
 
@@ -3004,6 +3010,9 @@ int main()
                     //*SIZE BASED ORGANIZATION
                     cout << "\033[33m" << "\nUNDO CHANGES ORGANIZATION\n"
                          << "\033[0m";
+
+                    //! varable
+                    vector<fs::path> folderToCleanup;
                     do
                     {
                         cout << "[1] CURRENT UNDO\n";
@@ -3030,10 +3039,19 @@ int main()
                                 cout << "\033[0m";
                                 break;
                             }
+
                             for (size_t i = latestOperationEnd; i > latestOperationStart;)
                             {
                                 --i;
                                 const MoveRecord &record = moveHistory[i];
+                                if (record.destination_folder_created)
+                                {
+                                    fs::path folderPath = record.destination_path.parent_path();
+                                    if (std::find(folderToCleanup.begin(), folderToCleanup.end(), folderPath) == folderToCleanup.end())
+                                    {
+                                        folderToCleanup.push_back(record.destination_path.parent_path());
+                                    }
+                                }
                                 if (!record.success)
                                 {
                                     continue;
@@ -3079,6 +3097,29 @@ int main()
                                 cout << "\033[0m";
                             }
                             latestOperationStart = latestOperationEnd;
+                            for (const fs::path &folderPath : folderToCleanup)
+                            {
+                                std::error_code ec;
+                                if (!fs::exists(folderPath, ec) || ec)
+                                {
+                                    continue;
+                                }
+                                if (fs::remove(folderPath, ec))
+                                {
+                                    cout << "\033[32m";
+                                    cout << "Empty folder removed : "
+                                         << folderPath.string() << "\n";
+                                    cout << "\033[0m";
+                                }
+                                else if (ec)
+                                {
+                                    cout << "\033[31m";
+                                    cout << "Folder cleanup failed : "
+                                         << folderPath.string() << "\n";
+                                    cout << "ERROR: " << ec.message() << "\n";
+                                    cout << "\033[0m";
+                                }
+                            }
                             break;
                         }
                         case 2:
