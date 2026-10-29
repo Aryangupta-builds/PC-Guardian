@@ -86,7 +86,8 @@ public:
     void display(long long sizedivider, int nameWidth, int relativePathwidth, bool showdate) const
     {
         // formating
-        string formatdata = format("{:.2f} {}", sizeconverter(size).first, sizeconverter(size).second);
+        const auto convertedSize = sizeconverter(size);
+        string formatdata = format("{:.2f} {}", convertedSize.first, convertedSize.second);
         if (showdate)
         {
             cout << setw(nameWidth) << left << filename << "  ";
