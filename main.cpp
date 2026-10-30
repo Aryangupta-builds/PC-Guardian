@@ -223,7 +223,7 @@ AnalysisResult Analyzer(const vector<FileInfo> &files, const map<string, string>
         result.categoryStorage[categoryName] += currentSize;
 
         // extension wise storage
-        result.storage[Storedfile.getextension()] += currentSize;
+        result.storage[extension] += currentSize;
 
         // max file details
         if (currentSize > result.MaxSize)
@@ -376,7 +376,9 @@ void DynamicBar(int position, int Max_bar_length)
         return;
     }
 
-    // position in safe range
+    // Keep position within the valid bar range.
+    position = clamp(position, 0, Max_bar_length - 1);
+
     // scanning bar
     cout << "\r";
     cout << string(position, '-');
@@ -454,6 +456,9 @@ string formatFileDate(fs::file_time_type time)
 
 void DisplayFileTable(const vector<FileInfo> &files, long long sizeDivider, size_t howManyFiles, bool showdate)
 {
+    // Never read beyond the available vector elements.
+    howManyFiles = min(howManyFiles, files.size());
+
     // future mai yeh hardcoded value ko dynamic bana dege
     int extensionWidth = 12;
     int sizeWidth = 15;
@@ -655,9 +660,9 @@ bool saveMoveHistory(vector<MoveRecord> &movehistory)
 void processOrganization(const vector<pair<FileInfo, string>> &filesToMove, vector<MoveRecord> &MoveHistory, const string parentpath, size_t &latestOperationStart, size_t &latestOperationEnd, const int Max_bar_length, int &successfulmove, int &failedmove)
 {
     // MoveHistory.clear();
-    int totalEnteries = filesToMove.size();
+    const size_t totalEnteries = filesToMove.size();
     latestOperationStart = MoveHistory.size();
-    int processedEnteries = 0;
+    size_t processedEnteries = 0;
     successfulmove = 0;
     failedmove = 0;
 
@@ -1082,8 +1087,11 @@ int main()
             // -----------------------displaying directory file info------------------------------
 
             // formating
-            string printdatamax = format("{:.2f} {}", sizeconverter(analysis.MaxSize).first, sizeconverter(analysis.MaxSize).second);
-            string printdatatotal = format("{:.2f} {}", sizeconverter(analysis.TotalSize).first, sizeconverter(analysis.TotalSize).second);
+            const auto convertedMaxSize = sizeconverter(analysis.MaxSize);
+            const auto convertedTotalSize = sizeconverter(analysis.TotalSize);
+
+            string printdatamax = format("{:.2f} {}", convertedMaxSize.first, convertedMaxSize.second);
+            string printdatatotal = format("{:.2f} {}", convertedTotalSize.first, convertedTotalSize.second);
 
             if (SkippedEntries > 0)
             {
@@ -1126,9 +1134,10 @@ int main()
 
             for (const auto &item : analysis.categoryStorage)
             {
+                const auto convertedCategorySize = sizeconverter(item.second);
                 string printdata = format("{:.2f} {}",
-                                          sizeconverter(item.second).first,
-                                          sizeconverter(item.second).second); // bytes to kb,mb,gb convert
+                                          convertedCategorySize.first,
+                                          convertedCategorySize.second); // bytes to kb,mb,gb convert
 
                 // safe percentage lookup using the same extension key
                 auto percentageIt = analysis.categorystoragePercentage.find(item.first);
