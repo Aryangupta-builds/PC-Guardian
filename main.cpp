@@ -129,7 +129,17 @@ struct MoveRecord
     fs::path destination_path;
     bool success;
     bool destination_folder_created = false;
+    bool skipped = false; // skipped because of a destination conflict
 };
+
+// what to do when the destination file already exists
+enum class ConflictPolicy
+{
+    Rename,
+    Skip
+};
+static ConflictPolicy g_conflictPolicy = ConflictPolicy::Rename;
+
 string getSingleFileSizeCategory(long long size)
 {
     if (size < 10LL * 1024 * 1024)
@@ -583,6 +593,12 @@ MoveRecord moveFILE(const fs::path source, const fs::path destinationFOLDER)
 
     if (fs::exists(destinationFILE))
     {
+        if (g_conflictPolicy == ConflictPolicy::Skip)
+        {
+            MoveRecord skippedRecord{source, destinationFILE, false, destinationFolderCreated};
+            skippedRecord.skipped = true;
+            return skippedRecord;
+        }
         string filename = source.stem().string();
         string extension = source.extension().string();
 
@@ -622,113 +638,6 @@ struct sizeRule
     long long maxSize;
     string folderName_input;
 };
-
-bool saveMoveHistory(vector<MoveRecord> &movehistory)
-{
-    ofstream historyFILE("move_history.txt", ios::app);
-    if (!historyFILE)
-    {
-        cout << "ERROR : COULD NOT SAVE HISTORY FILE\n";
-        return false;
-    }
-    historyFILE << "============MOVE HISTORY============\n";
-    for (const auto &record : movehistory)
-    {
-        historyFILE << "\nSOURCE        :"
-                    << record.source_path.string() << "\n";
-        historyFILE << "DESTINATION   :"
-                    << record.destination_path.string() << "\n";
-        if (record.success)
-        {
-            historyFILE << "STATUS        :";
-            historyFILE << "\033[32m" << "SUCCESS\n"
-                        << "\033[0m";
-        }
-        else
-        {
-            historyFILE << "STATUS            :";
-            historyFILE << "\033[31m" << "FAILED\n"
-                        << "\033[0m";
-        }
-        historyFILE << "--------------------------------------\n";
-    }
-    historyFILE.close();
-    cout << "MOVE HISTORY SAVED SUCCESSFULLY\n";
-    return true;
-}
-
-void processOrganization(const vector<pair<FileInfo, string>> &filesToMove, vector<MoveRecord> &MoveHistory, const string parentpath, size_t &latestOperationStart, size_t &latestOperationEnd, const int Max_bar_length, int &successfulmove, int &failedmove)
-{
-    // MoveHistory.clear();
-    const size_t totalEnteries = filesToMove.size();
-    latestOperationStart = MoveHistory.size();
-    size_t processedEnteries = 0;
-    successfulmove = 0;
-    failedmove = 0;
-
-    if (filesToMove.empty())
-    {
-        latestOperationStart = latestOperationEnd;
-        cout << "\033[31m";
-        cout << "NO FILES TO ORGANIZE\n";
-        cout << "\033[0m";
-        return;
-    }
-    for (const auto &filefolderpair : filesToMove)
-    {
-        const FileInfo &file = filefolderpair.first;
-        const string &foldername = filefolderpair.second;
-
-        fs::path source_path = fs::path(parentpath) / file.getrelativePath() / (file.getfilename() + file.getextension());
-
-        fs::path destination_path = fs::path(parentpath) / foldername;
-
-        MoveRecord record = moveFILE(source_path, destination_path);
-        MoveHistory.push_back(record);
-        if (record.success)
-        {
-            successfulmove++;
-        }
-        else
-        {
-            failedmove++;
-        }
-        processedEnteries++;
-        double percentage = ((double(processedEnteries) / totalEnteries) * 100);
-        cout << "\r";
-        StaticBar(percentage, Max_bar_length);
-        cout.flush();
-    }
-    cout << "\n";
-    latestOperationEnd = MoveHistory.size();
-    if (failedmove == 0)
-    {
-        cout << "\033[32m";
-        cout << "ORGANIZATION COMPLETED SUCCESSFULLY\n";
-        cout << "\033[0m";
-    }
-    else
-    {
-        cout << "\033[31m";
-        cout << "ORGANIZATION COMPLETED WITH ERRORS\n";
-        cout << "\033[0m";
-    }
-
-    cout << "SUCCESSFUL MOVES : " << successfulmove << "\n";
-    cout << "FAILED MOVES     : " << failedmove << "\n";
-
-    char saveChoice;
-    cout << "\nDO YOU WANT TO SAVE MOVE HISTORY ? (Y/N): ";
-    cin >> saveChoice;
-    if (saveChoice == 'Y' || saveChoice == 'y')
-    {
-        saveMoveHistory(MoveHistory);
-    }
-    else if (saveChoice != 'N' && saveChoice != 'n')
-    {
-        cout << "INVALID CHOICE. HISTORY NOT SAVED. \n";
-    }
-}
 
 void showPreviousMoveHistory()
 {
@@ -809,6 +718,1003 @@ void showMoveHistory(const vector<MoveRecord> &moveHistory)
     }
 }
 
+
+// ---------------------- small input helpers --------------------------
+// Token based input: cin >> string, then safe parsing. Mixing getline and
+// cin >> is what causes the classic "skipped input" bug, so these helpers
+// always consume the rest of the line.
+bool readIntToken(int &out)
+{
+    string s;
+    if (!(cin >> s))
+    {
+        return false; // EOF / stream dead
+    }
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+    try
+    {
+        size_t pos = 0;
+        int v = stoi(s, &pos);
+        out = (pos == s.size()) ? v : -1;
+    }
+    catch (...)
+    {
+        out = -1;
+    }
+    return true;
+}
+
+bool readYesNo(const string &prompt, bool &answer)
+{
+    while (true)
+    {
+        cout << prompt;
+        string s;
+        if (!(cin >> s))
+        {
+            return false;
+        }
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        char c = static_cast<char>(tolower(static_cast<unsigned char>(s[0])));
+        if (s.size() == 1 && (c == 'y' || c == 'n'))
+        {
+            answer = (c == 'y');
+            return true;
+        }
+        cout << "\033[31m" << "INVALID OPTION (Y/N only)\n"
+             << "\033[0m";
+    }
+}
+
+string humanSize(long long bytes)
+{
+    auto c = sizeconverter(bytes);
+    return format("{:.2f} {}", c.first, c.second);
+}
+
+void printHeader(const string &title)
+{
+    cout << "\033[36m";
+    cout << "\n"
+         << title << "\n";
+    cout << "----------------------------------------------------------\n";
+    cout << "\033[0m";
+}
+
+fs::path buildFullPath(const string &root, const FileInfo &f)
+{
+    return fs::path(root) / f.getrelativePath() / (f.getfilename() + f.getextension());
+}
+
+string displayPath(const FileInfo &f)
+{
+    fs::path p = fs::path(f.getrelativePath()) / (f.getfilename() + f.getextension());
+    return p.lexically_normal().string();
+}
+
+// ---------------------- rescan (fresh real paths) ----------------
+// After files are moved, the old vector<FileInfo> has stale relativePath
+// values. Rescanning gives PC Guardian the ACTUAL current state.
+bool rescanDirectory(const string &root, vector<FileInfo> &files, int &folderCounter)
+{
+    vector<FileInfo> fresh;
+    int folders = 0;
+    error_code ec;
+    fs::recursive_directory_iterator it(root, fs::directory_options::skip_permission_denied, ec);
+    fs::recursive_directory_iterator end;
+    if (ec)
+    {
+        return false;
+    }
+    while (it != end)
+    {
+        try
+        {
+            const auto &entry = *it;
+            if (entry.is_regular_file())
+            {
+                fs::path parent = entry.path().parent_path();
+                fs::path rel = fs::relative(parent, root);
+                fresh.emplace_back(entry.path().filename().stem().string(),
+                                   entry.path().extension().string(),
+                                   rel.string(),
+                                   static_cast<long long>(entry.file_size()),
+                                   fs::last_write_time(entry.path()));
+            }
+            else if (entry.is_directory())
+            {
+                folders++;
+            }
+        }
+        catch (const fs::filesystem_error &)
+        {
+            // skip unreadable entry
+        }
+        it.increment(ec);
+        if (ec)
+        {
+            break;
+        }
+    }
+    files = std::move(fresh);
+    folderCounter = folders;
+    return true;
+}
+
+// ---------------------- persistent history (TSV) ----------------
+struct SavedBatch
+{
+    string timestamp;
+    vector<MoveRecord> records;
+};
+
+const string HISTORY_TSV = "move_history.tsv";
+
+string currentTimestamp()
+{
+    time_t now = time(nullptr);
+    tm lt = *localtime(&now);
+    ostringstream out;
+    out << put_time(&lt, "%Y-%m-%d %H:%M:%S");
+    return out.str();
+}
+
+vector<string> splitTabs(const string &line)
+{
+    vector<string> parts;
+    string cur;
+    for (char c : line)
+    {
+        if (c == '\t')
+        {
+            parts.push_back(cur);
+            cur.clear();
+        }
+        else
+        {
+            cur += c;
+        }
+    }
+    parts.push_back(cur);
+    return parts;
+}
+
+vector<SavedBatch> loadSavedBatches()
+{
+    vector<SavedBatch> batches;
+    ifstream in(HISTORY_TSV);
+    if (!in)
+    {
+        return batches;
+    }
+    string line;
+    while (getline(in, line))
+    {
+        if (!line.empty() && line.back() == '\r')
+        {
+            line.pop_back();
+        }
+        vector<string> p = splitTabs(line);
+        if (p.empty())
+        {
+            continue;
+        }
+        if (p[0] == "#BATCH" && p.size() >= 2)
+        {
+            batches.push_back({p[1], {}});
+        }
+        else if (p[0] == "R" && p.size() >= 5 && !batches.empty())
+        {
+            MoveRecord r;
+            r.source_path = fs::path(p[1]);
+            r.destination_path = fs::path(p[2]);
+            r.success = (p[3] == "1");
+            r.destination_folder_created = (p[4] == "1");
+            batches.back().records.push_back(r);
+        }
+        // anything else = corrupted line -> ignored (integrity safe)
+    }
+    return batches;
+}
+
+bool writeSavedBatches(const vector<SavedBatch> &batches)
+{
+    ofstream out(HISTORY_TSV, ios::trunc);
+    if (!out)
+    {
+        return false;
+    }
+    for (const auto &b : batches)
+    {
+        out << "#BATCH\t" << b.timestamp << "\n";
+        for (const auto &r : b.records)
+        {
+            out << "R\t" << r.source_path.string() << "\t" << r.destination_path.string()
+                << "\t" << (r.success ? 1 : 0) << "\t" << (r.destination_folder_created ? 1 : 0) << "\n";
+        }
+    }
+    return true;
+}
+
+// Saves ONLY the latest operation (start..end) - old code saved the whole
+// cumulative history every time, which duplicated records.
+bool saveMoveHistory(const vector<MoveRecord> &history, size_t start, size_t end)
+{
+    if (start >= end || end > history.size())
+    {
+        cout << "NOTHING NEW TO SAVE\n";
+        return false;
+    }
+    // human readable (no ANSI codes inside the file)
+    ofstream text("move_history.txt", ios::app);
+    if (!text)
+    {
+        cout << "ERROR : COULD NOT SAVE HISTORY FILE\n";
+        return false;
+    }
+    text << "============MOVE HISTORY (" << currentTimestamp() << ")============\n";
+    for (size_t i = start; i < end; i++)
+    {
+        const MoveRecord &r = history[i];
+        text << "\nSOURCE        : " << r.source_path.string() << "\n";
+        text << "DESTINATION   : " << r.destination_path.string() << "\n";
+        text << "STATUS        : " << (r.skipped ? "SKIPPED" : (r.success ? "SUCCESS" : "FAILED")) << "\n";
+        text << "--------------------------------------\n";
+    }
+    text.close();
+
+    // machine readable (used by OLD UNDO)
+    ofstream tsv(HISTORY_TSV, ios::app);
+    if (!tsv)
+    {
+        cout << "ERROR : COULD NOT SAVE UNDO DATA\n";
+        return false;
+    }
+    tsv << "#BATCH\t" << currentTimestamp() << "\n";
+    for (size_t i = start; i < end; i++)
+    {
+        const MoveRecord &r = history[i];
+        if (!r.success)
+        {
+            continue; // only real moves can be undone
+        }
+        tsv << "R\t" << r.source_path.string() << "\t" << r.destination_path.string()
+            << "\t1\t" << (r.destination_folder_created ? 1 : 0) << "\n";
+    }
+    cout << "MOVE HISTORY SAVED SUCCESSFULLY\n";
+    return true;
+}
+
+// Shared safe-undo core: reverse order, never guess paths, never overwrite.
+void undoRecordsReverse(const vector<MoveRecord> &records, int &restored, int &failed)
+{
+    restored = 0;
+    failed = 0;
+    vector<fs::path> foldersToCleanup;
+    for (size_t i = records.size(); i > 0;)
+    {
+        --i;
+        const MoveRecord &r = records[i];
+        if (r.destination_folder_created)
+        {
+            fs::path folder = r.destination_path.parent_path();
+            if (find(foldersToCleanup.begin(), foldersToCleanup.end(), folder) == foldersToCleanup.end())
+            {
+                foldersToCleanup.push_back(folder);
+            }
+        }
+        if (!r.success)
+        {
+            continue;
+        }
+        error_code ec;
+        if (!fs::exists(r.destination_path, ec) || ec)
+        {
+            cout << "\033[31m" << "Cannot undo (moved file missing): " << r.destination_path.string() << "\n"
+                 << "\033[0m";
+            failed++;
+            continue;
+        }
+        if (fs::exists(r.source_path, ec) || ec)
+        {
+            cout << "\033[31m" << "Cannot undo (original path occupied): " << r.source_path.string() << "\n"
+                 << "\033[0m";
+            failed++;
+            continue;
+        }
+        fs::create_directories(r.source_path.parent_path(), ec); // folder may have been cleaned up
+        ec.clear();
+        fs::rename(r.destination_path, r.source_path, ec);
+        if (ec)
+        {
+            cout << "\033[31m" << "Undo failed: " << ec.message() << "\n"
+                 << "\033[0m";
+            failed++;
+            continue;
+        }
+        cout << "\033[32m" << "Restored: " << r.source_path.string() << "\n"
+             << "\033[0m";
+        restored++;
+    }
+    for (const auto &folder : foldersToCleanup)
+    {
+        error_code ec;
+        if (fs::exists(folder, ec) && fs::is_empty(folder, ec) && !ec)
+        {
+            if (fs::remove(folder, ec))
+            {
+                cout << "\033[32m" << "Empty folder removed : " << folder.string() << "\n"
+                     << "\033[0m";
+            }
+        }
+    }
+}
+
+// OLD UNDO: undo the most recent SAVED batch (stack discipline: last in, first out)
+void undoLastSavedBatch()
+{
+    vector<SavedBatch> batches = loadSavedBatches();
+    // drop empty batches so they never block the stack
+    while (!batches.empty() && batches.back().records.empty())
+    {
+        batches.pop_back();
+    }
+    if (batches.empty())
+    {
+        cout << "\033[31m" << "NO SAVED OPERATION AVAILABLE TO UNDO\n"
+             << "\033[0m";
+        return;
+    }
+    const SavedBatch &last = batches.back();
+    cout << "\nLAST SAVED OPERATION\n";
+    cout << "Time  : " << last.timestamp << "\n";
+    cout << "Files : " << last.records.size() << "\n";
+    bool yes = false;
+    if (!readYesNo("Undo this operation? (Y/N) : ", yes) || !yes)
+    {
+        cout << "\033[32m" << "UNDO CANCELED\n"
+             << "\033[0m";
+        return;
+    }
+    int restored = 0, failed = 0;
+    undoRecordsReverse(last.records, restored, failed);
+    cout << "\nRESTORED : " << restored << "\nFAILED   : " << failed << "\n";
+    if (failed == 0)
+    {
+        batches.pop_back();
+        writeSavedBatches(batches);
+        cout << "\033[32m" << "Saved history updated.\n"
+             << "\033[0m";
+    }
+    else
+    {
+        cout << "\033[33m" << "Some files could not be restored; batch kept in history.\n"
+             << "\033[0m";
+    }
+}
+
+// ---------------------- conflict handling + summary ------
+bool sameFolder(const fs::path &a, const fs::path &b)
+{
+    error_code ec;
+    if (fs::exists(a, ec) && fs::exists(b, ec))
+    {
+        error_code ec2;
+        bool eq = fs::equivalent(a, b, ec2);
+        if (!ec2)
+        {
+            return eq;
+        }
+    }
+    return a.lexically_normal() == b.lexically_normal();
+}
+
+void processOrganization(const vector<pair<FileInfo, string>> &filesToMove, vector<MoveRecord> &MoveHistory, const string parentpath, size_t &latestOperationStart, size_t &latestOperationEnd, const int Max_bar_length, int &successfulmove, int &failedmove)
+{
+    const size_t previousStart = latestOperationStart; // restored on cancel
+    const size_t totalEnteries = filesToMove.size();
+    latestOperationStart = MoveHistory.size();
+    size_t processedEnteries = 0;
+    successfulmove = 0;
+    failedmove = 0;
+    int skippedmove = 0;
+    int alreadyInPlace = 0;
+
+    if (filesToMove.empty())
+    {
+        latestOperationStart = previousStart;
+        cout << "\033[31m";
+        cout << "NO FILES TO ORGANIZE\n";
+        cout << "\033[0m";
+        return;
+    }
+
+    // ---- detect conflicts BEFORE touching anything ----
+    size_t conflicts = 0;
+    for (const auto &item : filesToMove)
+    {
+        fs::path src = fs::path(parentpath) / item.first.getrelativePath() / (item.first.getfilename() + item.first.getextension());
+        fs::path dstFolder = fs::path(parentpath) / item.second;
+        error_code ec;
+        if (!sameFolder(src.parent_path(), dstFolder) && fs::exists(dstFolder / src.filename(), ec) && !ec)
+        {
+            conflicts++;
+        }
+    }
+    g_conflictPolicy = ConflictPolicy::Rename;
+    if (conflicts > 0)
+    {
+        cout << "\033[33m" << "\n"
+             << conflicts << " FILE(S) ALREADY EXIST AT THE DESTINATION\n"
+             << "\033[0m";
+        cout << "[1] RENAME  (main.cpp -> main_1.cpp)\n";
+        cout << "[2] SKIP    (leave the file where it is)\n";
+        cout << "[3] CANCEL\n";
+        int c = 0;
+        while (true)
+        {
+            cout << "YOUR CHOICE : ";
+            if (!readIntToken(c))
+            {
+                c = 3;
+                break;
+            }
+            if (c >= 1 && c <= 3)
+            {
+                break;
+            }
+            cout << "\033[31m" << "INVALID OPTION\n"
+                 << "\033[0m";
+        }
+        if (c == 3)
+        {
+            latestOperationStart = previousStart;
+            cout << "\033[32m" << "OPERATION CANCELED SUCCESSFULLY\n"
+                 << "\033[0m";
+            return;
+        }
+        g_conflictPolicy = (c == 2) ? ConflictPolicy::Skip : ConflictPolicy::Rename;
+    }
+
+    for (const auto &filefolderpair : filesToMove)
+    {
+        const FileInfo &file = filefolderpair.first;
+        const string &foldername = filefolderpair.second;
+
+        fs::path source_path = fs::path(parentpath) / file.getrelativePath() / (file.getfilename() + file.getextension());
+        fs::path destination_path = fs::path(parentpath) / foldername;
+
+        if (sameFolder(source_path.parent_path(), destination_path))
+        {
+            // already where it should be -> never rename a file onto itself
+            alreadyInPlace++;
+        }
+        else
+        {
+            MoveRecord record = moveFILE(source_path, destination_path);
+            MoveHistory.push_back(record);
+            if (record.success)
+            {
+                successfulmove++;
+            }
+            else if (record.skipped)
+            {
+                skippedmove++;
+            }
+            else
+            {
+                failedmove++;
+            }
+        }
+        processedEnteries++;
+        double percentage = ((double(processedEnteries) / totalEnteries) * 100);
+        cout << "\r";
+        StaticBar(percentage, Max_bar_length);
+        cout.flush();
+    }
+    cout << "\n";
+    g_conflictPolicy = ConflictPolicy::Rename;
+    latestOperationEnd = MoveHistory.size();
+
+    cout << (failedmove == 0 ? "\033[32m" : "\033[31m");
+    cout << (failedmove == 0 ? "\nFOLDER SEPARATION COMPLETE\n" : "\nFOLDER SEPARATION COMPLETED WITH ERRORS\n");
+    cout << "\033[0m";
+    cout << "----------------------------------\n";
+    cout << left;
+    cout << setw(18) << "Files processed" << ": " << totalEnteries << "\n";
+    cout << setw(18) << "Files moved" << ": " << successfulmove << "\n";
+    cout << setw(18) << "Already in place" << ": " << alreadyInPlace << "\n";
+    cout << setw(18) << "Skipped" << ": " << skippedmove << "\n";
+    cout << setw(18) << "Errors" << ": " << failedmove << "\n";
+    cout << right;
+
+    if (latestOperationEnd > latestOperationStart)
+    {
+        bool save = false;
+        if (readYesNo("\nDO YOU WANT TO SAVE MOVE HISTORY ? (Y/N): ", save) && save)
+        {
+            saveMoveHistory(MoveHistory, latestOperationStart, latestOperationEnd);
+        }
+    }
+}
+
+// ---------------------- reorganize / change mode -----------------
+string nameGroupFolder(const FileInfo &f)
+{
+    if (f.getfilename().empty())
+    {
+        return "Others";
+    }
+    unsigned char c = static_cast<unsigned char>(f.getfilename()[0]);
+    if (isalpha(c))
+    {
+        return string(1, static_cast<char>(toupper(c)));
+    }
+    if (isdigit(c))
+    {
+        return "0-9";
+    }
+    return "Others";
+}
+
+// declared here because processOrganization is defined earlier in the file
+void runReorganize(vector<FileInfo> &files,
+                   int &folderCounter,
+                   const string &root,
+                   const map<string, string> &category,
+                   vector<MoveRecord> &moveHistory,
+                   size_t &opStart,
+                   size_t &opEnd,
+                   const int barLength)
+{
+    cout << "\033[33m" << "\nREORGANIZE (CHANGE MODE)\n"
+         << "\033[0m";
+    if (!rescanDirectory(root, files, folderCounter))
+    {
+        cout << "\033[31m" << "COULD NOT RESCAN DIRECTORY\n"
+             << "\033[0m";
+        return;
+    }
+    cout << "Fresh scan done : " << files.size() << " files found (real current locations)\n\n";
+    cout << "[1] CATEGORY BASED\n[2] NAME BASED (A-Z)\n[3] SIZE BASED (Small/Medium/Large)\n[4] BACK\n";
+    cout << "YOUR CHOICE : ";
+    int mode = 0;
+    if (!readIntToken(mode) || mode == 4)
+    {
+        return;
+    }
+    vector<pair<FileInfo, string>> plan;
+    for (const auto &f : files)
+    {
+        if (mode == 1)
+        {
+            plan.push_back({f, getcategory(f.getextension(), category)});
+        }
+        else if (mode == 2)
+        {
+            plan.push_back({f, nameGroupFolder(f)});
+        }
+        else if (mode == 3)
+        {
+            plan.push_back({f, getSingleFileSizeCategory(f.getsize())});
+        }
+    }
+    if (mode < 1 || mode > 3)
+    {
+        cout << "\033[31m" << "INVALID OPTION\n"
+             << "\033[0m";
+        return;
+    }
+    showOrganizationPreview(plan);
+    bool yes = false;
+    if (!readYesNo("Do you want to continue?(Y/N) :", yes) || !yes)
+    {
+        cout << "\033[32m" << "OPERATION CANCELED SUCCESSFULLY\n"
+             << "\033[0m";
+        return;
+    }
+    int ok = 0, bad = 0;
+    size_t historyBefore = moveHistory.size();
+    processOrganization(plan, moveHistory, root, opStart, opEnd, barLength, ok, bad);
+
+    // old folders that became empty because of OUR moves
+    vector<fs::path> candidates;
+    for (size_t i = historyBefore; i < moveHistory.size(); i++)
+    {
+        if (!moveHistory[i].success)
+        {
+            continue;
+        }
+        fs::path parent = moveHistory[i].source_path.parent_path();
+        if (find(candidates.begin(), candidates.end(), parent) == candidates.end())
+        {
+            candidates.push_back(parent);
+        }
+    }
+    vector<fs::path> emptied;
+    fs::path rootPath = fs::path(root).lexically_normal();
+    for (size_t i = 0; i < candidates.size(); i++)
+    {
+        fs::path p = candidates[i];
+        error_code ec;
+        if (p.lexically_normal() == rootPath || !fs::is_directory(p, ec) || ec)
+        {
+            continue;
+        }
+        if (fs::is_empty(p, ec) && !ec)
+        {
+            if (find(emptied.begin(), emptied.end(), p) == emptied.end())
+            {
+                emptied.push_back(p);
+            }
+        }
+    }
+    if (!emptied.empty())
+    {
+        cout << "\nThese folders are now empty:\n";
+        for (const auto &p : emptied)
+        {
+            cout << "  " << p.string() << "\n";
+        }
+        bool remove = false;
+        if (readYesNo("Remove them? (Y/N) : ", remove) && remove)
+        {
+            for (const auto &p : emptied)
+            {
+                error_code ec;
+                if (fs::remove(p, ec))
+                {
+                    cout << "\033[32m" << "Removed : " << p.string() << "\n"
+                         << "\033[0m";
+                }
+                else if (ec)
+                {
+                    cout << "\033[31m" << "Could not remove : " << p.string() << " (" << ec.message() << ")\n"
+                         << "\033[0m";
+                }
+            }
+        }
+    }
+}
+
+// =====================================================================
+//  DUPLICATE FILE DETECTOR  (REPORT ONLY - never deletes)
+// =====================================================================
+struct DuplicateGroup
+{
+    vector<size_t> members; // indices into files
+};
+
+// FNV-1a 64 bit hash, streamed in 64KB chunks (NOT cryptographic -> every
+// hash match is re-verified byte by byte before it is called a duplicate)
+bool hashFileFNV1a(const fs::path &p, unsigned long long &out)
+{
+    ifstream f(p, ios::binary);
+    if (!f)
+    {
+        return false;
+    }
+    unsigned long long h = 1469598103934665603ULL;
+    vector<char> buf(64 * 1024);
+    while (f)
+    {
+        f.read(buf.data(), static_cast<streamsize>(buf.size()));
+        streamsize n = f.gcount();
+        for (streamsize i = 0; i < n; i++)
+        {
+            h ^= static_cast<unsigned char>(buf[static_cast<size_t>(i)]);
+            h *= 1099511628211ULL;
+        }
+    }
+    if (f.bad())
+    {
+        return false;
+    }
+    out = h;
+    return true;
+}
+
+bool filesIdentical(const fs::path &a, const fs::path &b, bool &readError)
+{
+    ifstream fa(a, ios::binary);
+    ifstream fb(b, ios::binary);
+    if (!fa || !fb)
+    {
+        readError = true;
+        return false;
+    }
+    vector<char> ba(64 * 1024), bb(64 * 1024);
+    while (true)
+    {
+        fa.read(ba.data(), static_cast<streamsize>(ba.size()));
+        fb.read(bb.data(), static_cast<streamsize>(bb.size()));
+        streamsize ra = fa.gcount();
+        streamsize rb = fb.gcount();
+        if (fa.bad() || fb.bad())
+        {
+            readError = true;
+            return false;
+        }
+        if (ra != rb)
+        {
+            return false;
+        }
+        if (ra == 0)
+        {
+            return true;
+        }
+        if (!equal(ba.begin(), ba.begin() + ra, bb.begin()))
+        {
+            return false;
+        }
+        if (fa.eof() && fb.eof())
+        {
+            return true;
+        }
+    }
+}
+
+// groups with >= 2 members, built by a key function
+vector<DuplicateGroup> groupByKey(const vector<FileInfo> &files, bool useName, bool useSize)
+{
+    map<string, vector<size_t>> buckets;
+    for (size_t i = 0; i < files.size(); i++)
+    {
+        if (useSize && files[i].getsize() == 0)
+        {
+            continue; // empty files are not treated as duplicates
+        }
+        string key;
+        if (useName)
+        {
+            key += tolowerCASE(files[i].getfilename() + files[i].getextension());
+        }
+        key += "|";
+        if (useSize)
+        {
+            key += to_string(files[i].getsize());
+        }
+        buckets[key].push_back(i);
+    }
+    vector<DuplicateGroup> groups;
+    for (auto &b : buckets)
+    {
+        if (b.second.size() >= 2)
+        {
+            groups.push_back({b.second});
+        }
+    }
+    return groups;
+}
+
+void printDuplicateGroups(const vector<DuplicateGroup> &groups,
+                          const vector<FileInfo> &files,
+                          bool sameSize,
+                          size_t displayLimit = 15)
+{
+    if (groups.empty())
+    {
+        cout << "\033[32m" << "NO DUPLICATE GROUPS FOUND\n"
+             << "\033[0m";
+        return;
+    }
+    long long reclaimable = 0;
+    size_t totalFiles = 0;
+    for (size_t g = 0; g < groups.size(); g++)
+    {
+        const auto &grp = groups[g];
+        totalFiles += grp.members.size();
+        long long sz = files[grp.members[0]].getsize();
+        if (sameSize)
+        {
+            reclaimable += sz * static_cast<long long>(grp.members.size() - 1);
+        }
+        if (g < displayLimit)
+        {
+            cout << "\033[33m" << "\nGROUP " << (g + 1) << " : " << grp.members.size() << " files";
+            if (sameSize)
+            {
+                cout << "  (each " << humanSize(sz) << ")";
+            }
+            cout << "\033[0m\n";
+            for (size_t idx : grp.members)
+            {
+                cout << "  " << displayPath(files[idx]);
+                if (!sameSize)
+                {
+                    cout << "   [" << humanSize(files[idx].getsize()) << "]";
+                }
+                cout << "\n";
+            }
+        }
+    }
+    if (groups.size() > displayLimit)
+    {
+        cout << "\n... " << (groups.size() - displayLimit) << " more groups not shown\n";
+    }
+    cout << "\nGROUPS FOUND     : " << groups.size() << "\n";
+    cout << "FILES IN GROUPS  : " << totalFiles << "\n";
+    if (sameSize)
+    {
+        cout << "RECLAIMABLE      : " << humanSize(reclaimable) << "  (if extra copies were removed)\n";
+    }
+    cout << "\033[33m" << "REPORT ONLY - NOTHING WAS DELETED OR MOVED\n"
+         << "\033[0m";
+}
+
+// Confirmed duplicates: same size -> (optional hash buckets) -> byte compare
+vector<DuplicateGroup> findConfirmedDuplicates(const vector<FileInfo> &files,
+                                               const string &root,
+                                               bool useHash,
+                                               int &unreadable,
+                                               size_t &hashed,
+                                               size_t &hashMatches)
+{
+    unreadable = 0;
+    hashed = 0;
+    hashMatches = 0;
+    vector<DuplicateGroup> sizeGroups = groupByKey(files, false, true);
+    vector<DuplicateGroup> confirmed;
+
+    for (size_t gi = 0; gi < sizeGroups.size(); gi++)
+    {
+        cout << "\rComparing group " << (gi + 1) << "/" << sizeGroups.size() << "   " << flush;
+
+        // step 1 : split the size-group into buckets
+        vector<vector<size_t>> buckets;
+        if (useHash)
+        {
+            map<unsigned long long, vector<size_t>> byHash;
+            for (size_t idx : sizeGroups[gi].members)
+            {
+                unsigned long long h = 0;
+                if (!hashFileFNV1a(buildFullPath(root, files[idx]), h))
+                {
+                    unreadable++;
+                    continue;
+                }
+                hashed++;
+                byHash[h].push_back(idx);
+            }
+            for (auto &b : byHash)
+            {
+                if (b.second.size() >= 2)
+                {
+                    hashMatches += b.second.size();
+                    buckets.push_back(b.second);
+                }
+            }
+        }
+        else
+        {
+            buckets.push_back(sizeGroups[gi].members);
+        }
+
+        // step 2 : byte-by-byte verification (cluster by representative)
+        for (const auto &bucket : buckets)
+        {
+            vector<vector<size_t>> clusters;
+            for (size_t idx : bucket)
+            {
+                bool placed = false;
+                for (auto &cluster : clusters)
+                {
+                    bool readError = false;
+                    if (filesIdentical(buildFullPath(root, files[cluster[0]]),
+                                       buildFullPath(root, files[idx]), readError))
+                    {
+                        cluster.push_back(idx);
+                        placed = true;
+                        break;
+                    }
+                    if (readError)
+                    {
+                        unreadable++;
+                        placed = true; // cannot compare -> leave it out
+                        break;
+                    }
+                }
+                if (!placed)
+                {
+                    clusters.push_back({idx});
+                }
+            }
+            for (auto &cluster : clusters)
+            {
+                if (cluster.size() >= 2)
+                {
+                    confirmed.push_back({cluster});
+                }
+            }
+        }
+    }
+    cout << "\r" << string(40, ' ') << "\r";
+    return confirmed;
+}
+
+void runDuplicateDetector(const vector<FileInfo> &files, const string &root)
+{
+    int choice = 0;
+    do
+    {
+        cout << "\n--------------------------------\n";
+        cout << "     " << "\033[33m" << "DUPLICATE FILE DETECTOR\n"
+             << "\033[0m";
+        cout << "--------------------------------\n";
+        cout << "[1] SAME FILENAME\n";
+        cout << "[2] SAME SIZE\n";
+        cout << "[3] CANDIDATE GROUPS (name + size)\n";
+        cout << "[4] CONTENT COMPARISON (byte by byte)\n";
+        cout << "[5] HASH SCAN (fast + verified)\n";
+        cout << "[6] BACK\n";
+        cout << "YOUR CHOICE : ";
+        if (!readIntToken(choice))
+        {
+            return;
+        }
+        int unreadable = 0;
+        size_t hashed = 0, hashMatches = 0;
+        switch (choice)
+        {
+        case 1:
+        {
+            printHeader("SAME FILENAME (sizes may differ)");
+            printDuplicateGroups(groupByKey(files, true, false), files, false);
+            break;
+        }
+        case 2:
+        {
+            printHeader("SAME SIZE (content NOT checked)");
+            printDuplicateGroups(groupByKey(files, false, true), files, true);
+            break;
+        }
+        case 3:
+        {
+            printHeader("CANDIDATE DUPLICATES (same name + same size)");
+            printDuplicateGroups(groupByKey(files, true, true), files, true);
+            break;
+        }
+        case 4:
+        {
+            printHeader("CONFIRMED DUPLICATES - BYTE COMPARISON");
+            auto groups = findConfirmedDuplicates(files, root, false, unreadable, hashed, hashMatches);
+            printDuplicateGroups(groups, files, true);
+            if (unreadable > 0)
+            {
+                cout << "\033[31m" << unreadable << " FILE(S) COULD NOT BE READ AND WERE LEFT OUT\n"
+                     << "\033[0m";
+            }
+            break;
+        }
+        case 5:
+        {
+            printHeader("CONFIRMED DUPLICATES - HASH SCAN (FNV-1a 64 + verify)");
+            auto groups = findConfirmedDuplicates(files, root, true, unreadable, hashed, hashMatches);
+            cout << "FILES HASHED        : " << hashed << "\n";
+            cout << "FILES WITH HASH MATCH: " << hashMatches << "\n";
+            printDuplicateGroups(groups, files, true);
+            if (unreadable > 0)
+            {
+                cout << "\033[31m" << unreadable << " FILE(S) COULD NOT BE READ AND WERE LEFT OUT\n"
+                     << "\033[0m";
+            }
+            break;
+        }
+        case 6:
+        {
+            cout << "\033[32m" << "GOING BACK...\n"
+                 << "\033[0m";
+            break;
+        }
+        default:
+        {
+            cout << "\033[31m" << "INVALID OPTION \n"
+                 << "\033[0m";
+        }
+        }
+    } while (choice != 6);
+}
+
 int main()
 {
     // startup
@@ -819,7 +1725,7 @@ int main()
          << "\033[32m"
          << "PC GUARDIAN"
          << "\033[0m"
-         << " v4.0\n";
+         << " v5.0\n";
 
     cout << "              " << "\033[36m" << "Smart File & System Health Manager\n"
          << "\033[0m";
@@ -1197,9 +2103,15 @@ int main()
         cout << "[3] FILE SORT\n";
         cout << "[4] FOLDER SEPARATION\n";
         cout << "[5] FILE REPORT\n";
-        cout << "[6] EXIT\n";
+        cout << "[6] DUPLICATE DETECTOR\n";
+        cout << "[7] STORAGE CLEANUP\n";
+        cout << "[8] EXIT\n";
         cout << "YOUR CHOICE :";
         cin >> user_choice_main_menu;
+        if (cin.eof())
+        {
+            return SUCCESS; // input closed -> exit instead of looping forever
+        }
         if (cin.fail())
         {
             cout << "\033[31m";
@@ -2472,7 +3384,8 @@ int main()
                 cout << "[3] SIZE BASED\n";
                 cout << "[4] MOVE HISTORY\n";
                 cout << "[5] UNDO CHANGES\n";
-                cout << "[6] BACK\n";
+                cout << "[6] REORGANIZE\n";
+                cout << "[7] BACK\n";
                 cout << "YOUR CHOICE : ";
                 cin >> user_choice_fileSeperation_menu;
                 if (cin.fail())
@@ -2502,6 +3415,7 @@ int main()
                 char user_responce_char;
                 //  // string folderName_input; CASE 2 MAI ALREADY DEFINED HAI
                 vector<sizeRule> sizeRules;
+                size_t historySizeBefore = moveHistory.size();
                 switch (user_choice_fileSeperation_menu)
                 {
                 case 1:
@@ -2595,6 +3509,8 @@ int main()
                     char user_responce;
 
                     //*NAME BASED ORGANIZATION RULE DEFINATION
+                    // menu ke baad newline buffer me reh jata hai -> getline usko empty input samajhta tha
+                    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
                     do
                     {
                         cout << "Enter keyword to organize files : ";
@@ -3092,6 +4008,8 @@ int main()
                                 //      << record.destination_path.string()
                                 //      << '\n';
 
+                                fs::create_directories(record.source_path.parent_path(), ec);
+                                ec.clear();
                                 fs::rename(record.destination_path, record.source_path, ec);
                                 if (ec)
                                 {
@@ -3134,7 +4052,7 @@ int main()
                         }
                         case 2:
                         {
-                            cout << "under development\n";
+                            undoLastSavedBatch();
                             break;
                         }
                         case 3:
@@ -3170,6 +4088,11 @@ int main()
                 }
                 case 6:
                 {
+                    runReorganize(files, folderCounter, path, category, moveHistory, latestOperationStart, latestOperationEnd, Max_bar_length);
+                    break;
+                }
+                case 7:
+                {
                     cout << "\033[32m";
                     cout << "GOING BACK...\n";
                     cout << "\033[0m";
@@ -3195,7 +4118,16 @@ int main()
                     }
                 }
                 }
-            } while (user_choice_fileSeperation_menu != 6);
+                // after any change the file list must show REAL current paths
+                if (moveHistory.size() != historySizeBefore || user_choice_fileSeperation_menu == 5 || user_choice_fileSeperation_menu == 6)
+                {
+                    if (rescanDirectory(path, files, folderCounter))
+                    {
+                        cout << "\033[36m" << "(file list refreshed from disk)\n"
+                             << "\033[0m";
+                    }
+                }
+            } while (user_choice_fileSeperation_menu != 7);
 
             break;
         }
@@ -3282,6 +4214,19 @@ int main()
         }
         case 6:
         {
+            // duplicate detector (report only)
+            runDuplicateDetector(files, path);
+            break;
+        }
+        case 7:
+        {
+            cout<<"\033[32m";
+            cout << "under development\n";
+            cout<<"\033[0m";
+            break;
+        }
+        case 8:
+        {
             cout << "\033[32m";
             cout << "EXITING......\n";
             cout << "\033[0m";
@@ -3308,6 +4253,6 @@ int main()
             break;
         }
         }
-    } while (user_choice_main_menu != 6);
+    } while (user_choice_main_menu != 8);
     return SUCCESS;
 }
